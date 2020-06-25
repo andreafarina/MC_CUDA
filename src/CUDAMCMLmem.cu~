@@ -1,0 +1,380 @@
+/*	This file is part of CUDAMCML.
+
+    CUDAMCML is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CUDAMCML is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CUDAMCML.  If not, see <http://www.gnu.org/licenses/>.*/
+
+
+
+float** falloc2D(int dim2, int dim1) { 
+
+	float** m;
+	float* tmp;
+	int i;
+	
+	m = (float**) calloc(dim2,sizeof(float*));
+	tmp = (float*) calloc(dim2*dim1,sizeof(float));
+
+	for (i=0;i<dim2;i++) m[i] = tmp + i*dim1;
+	//for (i=0;i<dim2;i++) m[i] = (float*)calloc(dim1,sizeof(float));
+	return m;
+
+	}
+
+int CopyDeviceToHostMem(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* sim)
+{ //Copy data from Device to Host memory
+
+	cudaError_t cudastat;
+	
+	unsigned int size,height;
+	unsigned int N_phot_thd=2*ceil(sim->number_of_photons/(NUM_THREADS))+1;
+	unsigned long int N_photons=N_phot_thd*NUM_THREADS;
+	
+	
+	//Also copy the state of the RNG's
+	size=NUM_THREADS*sizeof(unsigned long long);
+	printf("CopyDeviceToHostMem...\n");
+	cudaMemcpy(HostMem->x,DeviceMem->x,size,cudaMemcpyDeviceToHost);
+	//cudaMemcpy(HostMem->ph_launched,DeviceMem->ph_launched,sizeof(unsigned long long),cudaMemcpyDeviceToHost);
+	cudastat=cudaGetLastError();
+	if(cudastat){
+		printf("DeviceMem->x to HostMem->x copy error, code=%i, %s.\n",cudastat,cudaGetErrorString(cudastat));
+		exit(1);
+	}
+	//printf("test Host->x %llu\n",HostMem->x[10]);
+	
+	//Copio i fotoni lanciati per ogni THREAD ...dovrebbe gia' averlo fatto ad ogni uscita dal THD
+// 	cudaMemcpy(HostMem->counter,DeviceMem->counter,NUM_THREADS*sizeof(unsigned long int),cudaMemcpyDeviceToHost);
+// 	cudastat=cudaGetLastError();
+// 	if(cudastat){
+// 		printf("DeviceMem->counter to HostMem->counter copy error, code=%i, %s.\n",cudastat,cudaGetErrorString(cudastat));
+// 		exit(1);
+// 	}
+//DEBUG 	printf("test Host->counter %lu\n",HostMem->counter[NUM_THREADS-1]);
+	
+	//Copio ismoving....dovrebbe gia' averlo fatto ad ogni uscita dal THD
+	// cudaMemcpy(HostMem->ismoving,DeviceMem->ismoving,NUM_THREADS*sizeof(unsigned short int),cudaMemcpyDeviceToHost);
+// 	cudastat=cudaGetLastError();
+// 	if(cudastat){
+// 		printf("DeviceMem->ismoving to HostMem->ismoving copy error, code=%i, %s.\n",cudastat,cudaGetErrorString(cudastat));
+// 		exit(1);
+// 	}
+//DEBUG	printf("test Host->ismoving %u\n",HostMem->ismoving[NUM_THREADS-1]); 
+	
+	//cudaMemcpy(HostMem->ph_launched,DeviceMem->ph_launched,sizeof(unsigned long long int),cudaMemcpyDeviceToHost);
+//	cudastat=cudaGetLastError();
+//	if(cudastat){
+//		printf("DeviceMem->counter to HostMem->counter copy error, code=%i, %s.\n",cudastat,cudaGetErrorString(cudastat));
+//		exit(1);
+//	}
+	
+	size=N_photons*sizeof(float);
+	height=sim->n_detectors*sim->n_layers;
+//	cudaMemcpy2D(*HostMem->path,size,DeviceMem->path,sim->pitch,size, height,cudaMemcpyDeviceToHost);
+	cudaMemcpy(HostMem->path,DeviceMem->path,size*height,cudaMemcpyDeviceToHost);	
+	//cudaDeviceSynchronize();	
+	cudastat=cudaGetLastError();
+	if(cudastat){
+		printf("DeviceMem->path to HostMem->path copy error, code=%i, %s.\n",cudastat,cudaGetErrorString(cudastat));
+		exit(1);
+	}
+	//DEBUG
+	/*for(int j=0;j<sim->n_detectors*sim->n_layers;j++){
+	  	for(int i=0;i<NUM_THREADS;i++){
+	  		int n_phot=HostMem->received[i];
+			float* passo;
+	  			printf("%d\n",n_phot);
+	  			for(int ip=0;ip<N_phot_thd;ip++){
+					cudaMemcpy(passo,DeviceMem->path+i*N_phot_thd+ip,sizeof(float),cudaMemcpyDeviceToHost);	
+					printf("%.10f\n",*passo);				
+				}
+		}
+	 }*/
+	  
+	//printf("test Host->path %f\n",HostMem->path[0][0]);
+	//printf("test N_photons %lu\n",N_photons);				 
+	printf("Ok!\n");
+	//DEBUG
+		
+	return 0;
+}
+
+
+// Initialize the Device Constant Memory: 0->OK, 1->Error
+int InitDCMem(SimulationStruct* sim)
+{
+	printf("InitConstMem...");
+	cudaError_t cudastat;
+	unsigned int N_phot_thd=2*ceil(sim->number_of_photons/(NUM_THREADS))+1;
+	//printf("init DC: nphot x thread=%i\n",N_phot_thd);
+	// Copy num_photons_dc to constant device memory
+	 cudaMemcpyToSymbol(n_layers_dc,&(sim->n_layers),sizeof(short int));
+
+	// Copy layer data to constant device memory
+	cudaMemcpyToSymbol(layers_dc,sim->layers,(sim->n_layers+2)*sizeof(LayerStruct));
+	
+	// Copy num detectors to constant memory
+	cudaMemcpyToSymbol(n_detectors_dc,&(sim->n_detectors),sizeof(short int));
+	
+	// Copy detector coordinates to constant memory
+	cudaMemcpyToSymbol(detectors_dc,sim->detectors,(sim->n_detectors)*2*sizeof(float));
+	
+	// Copy max time to constant memory
+	cudaMemcpyToSymbol(tmax_dc,&(sim->tmax),sizeof(unsigned int));
+	
+	// Copy RorT (reflectance or transmittance) flag to constant memory
+	cudaMemcpyToSymbol(RorT_dc,&(sim->RorT),sizeof(char));
+	
+	// Copy Cylinder radius to constant memory
+	cudaMemcpyToSymbol(Radius_dc,&(sim->radius),sizeof(float));
+	
+	// Copy num photons per thread to receive in constant memory
+	 
+	cudaMemcpyToSymbol(N_photons_dc,&(N_phot_thd),sizeof(unsigned int));
+
+	cudastat=cudaGetLastError();
+	if(cudastat){
+		printf("Device Constant Memory initialization error, code=%i, %s.\n",cudastat,cudaGetErrorString(cudastat));
+		exit(1);
+	}
+	printf("Ok!\n");
+	return 0;
+	
+}
+
+
+// Initialize Memory: 0->OK, 1->Error
+int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, ThreadStates* tstates, SimulationStruct* sim)
+{
+	
+	cudaError_t cudastat;
+	unsigned int size,height;
+	unsigned int N_phot_thd=2*ceil(sim->number_of_photons/(NUM_THREADS))+1;
+	unsigned long int N_photons=N_phot_thd*NUM_THREADS;//sim->number_of_photons+NUM_THREADS;
+	
+	printf("=========================== MEMORY =========================\n");
+	printf("Num Blocks\tNum Threads per block\tNum threads\n");	
+	printf("------------------------------------------------------------\n");
+	printf("%d\t\t%d\t\t\t%d\n",NUM_BLOCKS,NUM_THREADS_PER_BLOCK,NUM_THREADS);
+	printf("------------------------------------------------------------\n");
+	
+	printf("Photons per thread=%i\n",N_phot_thd);
+	printf("Effective number of photons=%lu\n",N_photons);
+	printf("------------------------------------------------------------\n");
+	
+	printf("InitMem...");
+	// Allocate x and a on the device (For MWC RNG)
+    size=NUM_THREADS*sizeof(unsigned long long);
+    cudaMalloc((void**)&DeviceMem->x,size);
+    cudaMemcpy(DeviceMem->x,HostMem->x,size,cudaMemcpyHostToDevice);
+	
+	size=NUM_THREADS*sizeof(unsigned int);
+    cudaMalloc((void**)&DeviceMem->a,size);
+    cudaMemcpy(DeviceMem->a,HostMem->a,size,cudaMemcpyHostToDevice);
+	cudastat=cudaGetLastError();
+	if(cudastat){
+		printf("DeviceMem->x or DeviceMem->a allocation error, code=%i, %s.\n",cudastat,cudaGetErrorString(cudastat));
+		exit(1);
+	}
+	
+	
+	// Allocate 2D matrix in Device & Host Memory for pathlength: row->photons; height: rec1*n_layers + rec2*n_layers
+	//HostMem->path=falloc2D(sim->n_detectors*sim->n_layers,N_photons);
+	HostMem->path=(float*) calloc(sim->n_detectors*sim->n_layers*N_photons,sizeof(float));
+	if(HostMem->path==NULL){printf("Error allocating HostMem->path"); exit (1);}
+	
+	
+	size=N_photons*sizeof(float);	//width
+	height=sim->n_detectors*sim->n_layers;
+	/* 2D matrix
+	cudaMallocPitch((void**)&DeviceMem->path,&(sim->pitch),size,height);
+	*/
+	//sim->pitch = 2*ceil(sim->number_of_photons/(NUM_THREADS))+1;
+	//printf("Pitch = %i\n",(int)(sim->pitch));
+	//cudaMemcpyToSymbol(pitch_dc,&(sim->pitch),sizeof(size_t));
+	//cudaMemset2D(DeviceMem->path,sim->pitch,0.0,size,height);
+	
+	
+	// 2D linearized vector
+	cudaMalloc((void**)&DeviceMem->path,size*height);
+	cudaMemset(DeviceMem->path,0.0,size*height);
+	
+	cudastat=cudaGetLastError();
+	if(cudastat){
+		printf("DeviceMem->path allocation error, code=%i, %s.\n",cudastat,cudaGetErrorString(cudastat));
+		exit(1);
+	}
+	
+	// Allocate memory: counts the received photons for each detector
+	// size=sizeof(unsigned long int);
+// 	HostMem->photons=(unsigned long int*) calloc(sim->n_detectors,size);
+// 	if(HostMem->photons==NULL){printf("Error allocating HostMem->photons"); exit (1);}
+// 	cudaMalloc((void**)&DeviceMem->photons,sim->n_detectors*size);
+// 	cudaMemset(DeviceMem->photons,0,sim->n_detectors*size);
+// 	cudastat=cudaGetLastError();
+// 	if(cudastat){
+// 		printf("DeviceMem->photons allocation error, code=%i, %s.\n",cudastat,cudaGetErrorString(cudastat));
+// 		exit(1);
+// 	}
+	
+	// Allocate flag for saturated detector
+	// size=sizeof(unsigned short int);
+// 	HostMem->sat_det=(unsigned short int*) calloc(sim->n_detectors,size);
+// 	if(HostMem->sat_det==NULL){printf("Error allocating HostMem->sat_det"); exit (1);}
+// 	cudaMalloc((void**)&DeviceMem->sat_det,sim->n_detectors*size);
+// 	cudaMemset(DeviceMem->sat_det,0,sim->n_detectors*size);	
+// 	cudastat=cudaGetLastError();
+// 	if(cudastat){
+// 		printf("DeviceMem->sat_det allocation error, code=%i, %s.\n",cudastat,cudaGetErrorString(cudastat));
+// 		exit(1);
+// 	}
+	
+	// Allocate counter of photon launched on Device Memory
+	size=sizeof(unsigned long int);
+	HostMem->counter=(unsigned long int *)calloc(NUM_THREADS,size);
+	if(HostMem->counter==NULL){printf("Error allocating HostMem->counter"); exit (1);}
+//	
+	cudaMalloc((void**)&DeviceMem->counter,NUM_THREADS*size); //conta i fotoni lanciati per ogni thread per evitare di usare una AtomicAdd
+	cudaMemset(DeviceMem->counter,0,NUM_THREADS*size);
+	cudastat=cudaGetLastError();
+	if(cudastat){
+		printf("DeviceMem->counter allocation error, code=%i, %s.\n",cudastat,cudaGetErrorString(cudastat));
+		exit(1);
+	}
+	
+	size=sizeof(unsigned long int);
+	HostMem->received=(unsigned long int *)calloc(NUM_THREADS,size);
+	if(HostMem->received==NULL){printf("Error allocating HostMem->received"); exit (1);}
+//	
+	cudaMalloc((void**)&DeviceMem->received,NUM_THREADS*size); //conta i fotoni lanciati per ogni thread per evitare di usare una AtomicAdd
+	cudaMemset(DeviceMem->received,0,NUM_THREADS*size);
+	cudastat=cudaGetLastError();
+	if(cudastat){
+		printf("DeviceMem->received allocation error, code=%i, %s.\n",cudastat,cudaGetErrorString(cudastat));
+		exit(1);
+	}
+	// NEW Allocate flag for thd_active  on Device Memory
+	size=sizeof(unsigned short int);
+	HostMem->thd_active=(unsigned short int *)calloc(NUM_THREADS,size);
+	if(HostMem->thd_active==NULL){printf("Error allocating HostMem->thd_active"); exit (1);}
+	//printf("Init thd_active %i\t",HostMem->thd_active[0]);
+	//printf("n-thd=%i\t",NUM_THREADS);
+	for (int i=0;i<NUM_THREADS;i++) HostMem->thd_active[i]=1;
+//	
+	//printf("Init thd_active %i\t",HostMem->thd_active[0]);
+	// inizialize al valore 1
+	cudaMalloc((void**)&DeviceMem->thd_active,NUM_THREADS*size); 
+	//cudaMemset(DeviceMem->thd_active,1,NUM_THREADS*size);//OCCHIO RAGIONA PER BYTE e NON PER INTERI
+	cudaMemcpy(DeviceMem->thd_active,HostMem->thd_active,NUM_THREADS*size,cudaMemcpyHostToDevice);
+	cudastat=cudaGetLastError();
+	if(cudastat){
+		printf("DeviceMem->thd_active allocation error, code=%i, %s.\n",cudastat,cudaGetErrorString(cudastat));
+		exit(1);
+	}
+	
+		// Allocate Host memory for ismoving
+	 size=sizeof(unsigned short int);
+ 	HostMem->ismoving=(unsigned short int *)calloc(NUM_THREADS,size);
+ 	if(HostMem->ismoving==NULL){printf("Error allocating HostMem->ismoving"); exit (1);}
+ 	
+	 cudaMalloc((void**)&DeviceMem->ismoving,NUM_THREADS*size); 
+ 	cudaMemset(DeviceMem->ismoving,0,NUM_THREADS*size);
+ 	cudastat=cudaGetLastError();
+ 	if(cudastat){
+ 		printf("DeviceMem->ismoving allocation error, code=%i, %s.\n",cudastat,cudaGetErrorString(cudastat));
+ 		exit(1);
+ 	}
+	
+	//Allocate tstates photon 
+	size=NUM_THREADS*sizeof(float);
+	cudaMalloc((void**)&tstates->x,size);
+	cudaMalloc((void**)&tstates->y,size); 
+	cudaMalloc((void**)&tstates->z,size);
+	cudaMalloc((void**)&tstates->dx,size);
+	cudaMalloc((void**)&tstates->dy,size);
+	cudaMalloc((void**)&tstates->dz,size);
+	cudaMalloc((void**)&tstates->t,sim->n_layers*size);
+	cudaMalloc((void**)&tstates->time_tot,size);
+	cudaMalloc((void**)&tstates->t_left,size);
+	size=NUM_THREADS*sizeof(unsigned short int);
+	cudaMalloc((void**)&tstates->layer,size);
+	cudaMalloc((void**)&tstates->weight,size);
+	
+	//NEW
+	
+	
+	cudastat=cudaGetLastError();
+	if(cudastat){
+		printf("ThreadStates->p allocation error, code=%i, %s.\n",cudastat,cudaGetErrorString(cudastat));
+		exit(1);
+	}	
+	
+	printf("Ok!\n");
+	
+    
+	return 0;
+}
+
+void FreeDeviceMem(MemStruct* DeviceMem, ThreadStates* tstates)
+{
+
+  
+  cudaFree(DeviceMem->x); DeviceMem->x = NULL;
+  cudaFree(DeviceMem->a); DeviceMem->a = NULL;
+  
+  cudaFree(DeviceMem->path);
+  //cudaFree((void*)DeviceMem->pitch);
+  
+  cudaFree(tstates->x); tstates->x = NULL;
+  cudaFree(tstates->y); tstates->y = NULL;
+  cudaFree(tstates->z); tstates->z = NULL;
+  cudaFree(tstates->dx); tstates->dx = NULL;
+  cudaFree(tstates->dy); tstates->dy = NULL;
+  cudaFree(tstates->dz); tstates->dz = NULL;
+  cudaFree(tstates->weight); tstates->weight = NULL;
+  cudaFree(tstates->layer); tstates->layer = NULL;
+  cudaFree(tstates->time_tot); tstates->time_tot = NULL;
+  cudaFree(tstates->t); tstates->t = NULL;
+  cudaFree(tstates->t_left); tstates->t_left = NULL;
+  
+}
+
+void FreeHostMem(MemStruct* HostMem){  
+    free(HostMem->path);
+   	free(HostMem->counter);
+   	free(HostMem->received);
+    free(HostMem->thd_active);
+    free(HostMem->ismoving);
+    
+    
+   		
+
+}   
+   
+
+
+
+	
+	
+	
+	
+	
+	
+	
+	
+
+void FreeSimulationStruct(SimulationStruct* sim, int n_simulations)
+{
+	for(int i=0;i<n_simulations;i++)free(sim[i].layers);
+	free(sim);
+}
+

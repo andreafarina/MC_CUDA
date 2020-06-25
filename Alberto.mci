@@ -1,0 +1,26 @@
+############################################## 
+
+1.2											# file version 
+1											# number of runs 
+
+#### SPECIFY DATA FOR RUN 1
+##InParm									# Input parameters. cm is used.
+test.mco	A								# output file name, NO ASCII.
+10000										# Number of photons per detectors
+10000										# Time Max (ps)
+T											# R=Reflectance, T=Transmittance
+100.0000										# Radius of the cylinder
+
+1											# Numberes of detectors
+#r1	r2										# One line for each detector (cm)
+0.000000	0.150000
+
+
+2											# Number of layers
+#n		mua		mus			g		d		# One line for each layer
+1.00										# n for medium above and lateral 
+1.40	0.00	25.000000	0.80	0.500	# layer 1
+1.40	0.00	25.000000	0.80	0.500	# layer 2
+1.00										# n for medium below
+
+
