@@ -98,6 +98,7 @@ __device__ void LaunchPhoton(PhotonStruct* p)//per fibra con NA, unsigned long l
 	//AF	p->weight = *start_weight_dc; //specular reflection!
 
 }
+
 //*********************************** LaunchPhoton_Global ****************************************
 __global__ void LaunchPhoton_Global(ThreadStates tstates)//PhotonStruct* pd, unsigned long long* x, unsigned int* a)
 {
@@ -118,6 +119,7 @@ __global__ void LaunchPhoton_Global(ThreadStates tstates)//PhotonStruct* pd, uns
 	tstates.weight[thd_id]=p.weight;
 	tstates.t_left[thd_id]=p.t_left;	
 }
+
 //************************************* RestoreStates ******************************************
 __device__ void RestoreStates(MemStruct* DeviceMem,ThreadStates* tstates,PhotonStruct* p,unsigned long long* x, unsigned int* a)
 {
@@ -136,6 +138,7 @@ __device__ void RestoreStates(MemStruct* DeviceMem,ThreadStates* tstates,PhotonS
  	p->layer = tstates->layer[thd_id];
  	p->t_left = tstates->t_left[thd_id];
 }	
+
 //************************************* SaveStates ******************************************
 __device__ void SaveStates(MemStruct* DeviceMem,ThreadStates* tstates,PhotonStruct* p,unsigned long long x)
 {
@@ -156,6 +159,7 @@ __device__ void SaveStates(MemStruct* DeviceMem,ThreadStates* tstates,PhotonStru
 	tstates->weight[thd_id] = p->weight;
 	tstates->t_left[thd_id] = p->t_left;
 }	
+
 //************************************* ComputeStepSize ******************************************
 __device__ void ComputeStepSize(PhotonStruct* p, float* s,unsigned long long* x, unsigned int* a)
 {
@@ -182,6 +186,7 @@ __device__ void Hop(PhotonStruct *p,float s)
   	p->t[p->layer-1] += s;
   	p->time_tot += s/LIGHT_SPEED*layers_dc[p->layer].n;
 }
+
 //************************************* Spin ******************************************
 __device__ void Spin(PhotonStruct* p, float g, unsigned long long* x, unsigned int* a)
 {
@@ -229,7 +234,6 @@ __device__ void Spin(PhotonStruct* p, float g, unsigned long long* x, unsigned i
 	p->dz = p->dz*temp;
 }// end Spin
 
-			
 //************************************* Intersection ******************************************
 // 29-11-2011 MODIFICHE CYLINDER
 __device__ int Intersection(PhotonStruct* p, float* s)
@@ -426,6 +430,7 @@ __device__ void DetectAndSavePath(MemStruct* DeviceMem,PhotonStruct* p, int new_
 		p->weight=0u;  //uccide il fotone che esce lateralmente
 	}
 }
+
 //***************************************************************************************************************
 //Device function to add an unsigned integer to an unsigned long long using CUDA Compute Capability 1.1
 __device__ void AtomicAddULL(unsigned long long* address, unsigned int add)
