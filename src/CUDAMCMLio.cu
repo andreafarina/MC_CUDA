@@ -303,9 +303,9 @@ int read_simulation_data(char* filename, SimulationStruct** simulations)//, int 
 		{
 			(*simulations)[i].begin=ftell(pFile);
 			fgets (mystring , STR_LEN , pFile);
-			printf("mystring=%s\n",mystring);
+			//printf("mystring=%s\n",mystring);
 			ii=sscanf(mystring,"%s",str);
-			printf("str=%s\n",str);
+			//printf("str=%s\n",str);
 			if(feof(pFile)|| ii>2){perror("Error reading output filename");return 0;}
 			if(ii>0)ii=ischar(str[0]);
 		}
