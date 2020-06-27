@@ -169,7 +169,6 @@ __device__ void ComputeStepSize(PhotonStruct* p, float* s,unsigned long long* x,
  				*s = -__logf(rand)*layers_dc[p->layer].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
  			}else{
  				*s = p->t_left*layers_dc[p->layer].mutr;
- 				p->t_left = 0.0f;
  			}
  	}else{
  		*s=100.0f;
