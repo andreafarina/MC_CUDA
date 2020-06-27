@@ -39,16 +39,16 @@ __device__ void AtomicAddUL(unsigned long* address, unsigned int add);
 __global__ void MCd(MemStruct DeviceMem, ThreadStates tstates)
  {
 	int thd_id=NUM_THREADS_PER_BLOCK*blockIdx.x+threadIdx.x;
-    	unsigned int ii=0,iexit=NUMSTEPS_GPU; 
+    	unsigned int ii=0,iexit=NUMSTEPS_GPU;
  	unsigned long long int x;	//coherent
  	unsigned int a;			//coherent
  	PhotonStruct p;
- 	
+
  	float s;			//step length
  	short int new_layer;
-	
+
  	RestoreStates(&DeviceMem,&tstates,&p,&x,&a);
- 	
+
 	if (!DeviceMem.thd_active[thd_id]) iexit=0;
 	for(ii = 0;ii < iexit;ii++) //this is the main while loop
  	{
@@ -56,17 +56,17 @@ __global__ void MCd(MemStruct DeviceMem, ThreadStates tstates)
  		new_layer = Intersection(&p, &s);
  		Hop(&p, s);
  		if (p.time_tot >= tmax_dc[0]) p.weight=0u;
- 			
+
  		if (p.weight == 1u){
 			if(new_layer != p.layer){
 				if(Reflect(&p, new_layer, &x, &a) == 0u){	//Check for reflection
 					DetectAndSavePath(&DeviceMem, &p, new_layer, thd_id);
-				} 
+				}
 			} else Spin(&p, layers_dc[p.layer].g, &x, &a);
-		} 
-		
+		}
+
  		if ((p.weight == 0u)){ //NEW PHOTON
- 			if (DeviceMem.received[thd_id] < N_photons_dc[0]){  
+ 			if (DeviceMem.received[thd_id] < N_photons_dc[0]){
  		    		LaunchPhoton(&p);
  		  		DeviceMem.counter[thd_id]++;
  		  	}else{
@@ -74,8 +74,8 @@ __global__ void MCd(MemStruct DeviceMem, ThreadStates tstates)
 				ii=NUMSTEPS_GPU;
 			}
 		 }
- 		
- 	}//end for   
+
+ 	}//end for
  	SaveStates(&DeviceMem,&tstates,&p,x);
 }//end MCd
 
@@ -89,7 +89,7 @@ __device__ void LaunchPhoton(PhotonStruct* p)//per fibra con NA, unsigned long l
 	p->dx = 0.0f;
 	p->dy = 0.0f;
 	p->dz = 1.0f;
-		
+
 	for (short int i = 0;i < n_layers_dc[0];i++) p->t[i] = 0.0f;
 	p->time_tot=0.0f;
 	p->layer = 1;
@@ -106,7 +106,7 @@ __global__ void LaunchPhoton_Global(ThreadStates tstates)//PhotonStruct* pd, uns
     	PhotonStruct p;
 
 	LaunchPhoton(&p);
-	
+
 	tstates.x[thd_id]=p.x;
 	tstates.y[thd_id]=p.y;
 	tstates.z[thd_id]=p.z;
@@ -117,7 +117,7 @@ __global__ void LaunchPhoton_Global(ThreadStates tstates)//PhotonStruct* pd, uns
 	tstates.time_tot[thd_id]=p.time_tot;
 	tstates.layer[thd_id]=p.layer;
 	tstates.weight[thd_id]=p.weight;
-	tstates.t_left[thd_id]=p.t_left;	
+	tstates.t_left[thd_id]=p.t_left;
 }
 
 //************************************* RestoreStates ******************************************
@@ -137,7 +137,7 @@ __device__ void RestoreStates(MemStruct* DeviceMem,ThreadStates* tstates,PhotonS
  	p->weight = tstates->weight[thd_id];
  	p->layer = tstates->layer[thd_id];
  	p->t_left = tstates->t_left[thd_id];
-}	
+}
 
 //************************************* SaveStates ******************************************
 __device__ void SaveStates(MemStruct* DeviceMem,ThreadStates* tstates,PhotonStruct* p,unsigned long long x)
@@ -158,7 +158,7 @@ __device__ void SaveStates(MemStruct* DeviceMem,ThreadStates* tstates,PhotonStru
 	tstates->layer[thd_id] = p->layer;
 	tstates->weight[thd_id] = p->weight;
 	tstates->t_left[thd_id] = p->t_left;
-}	
+}
 
 //************************************* ComputeStepSize ******************************************
 __device__ void ComputeStepSize(PhotonStruct* p, float* s,unsigned long long* x, unsigned int* a)
@@ -169,12 +169,12 @@ __device__ void ComputeStepSize(PhotonStruct* p, float* s,unsigned long long* x,
  				*s = -__logf(rand)*layers_dc[p->layer].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
  			}else{
  				*s = p->t_left*layers_dc[p->layer].mutr;
-				p->left = 0.0f;
+				p->t_left = 0.0f;
 			}
  	}else{
- 		*s=100.0f;
+ 			*s=100.0f;
  	}
- }
+}
 
 //************************************* Hop ******************************************
 __device__ void Hop(PhotonStruct *p,float s)
@@ -190,18 +190,18 @@ __device__ void Hop(PhotonStruct *p,float s)
 //************************************* Spin ******************************************
 __device__ void Spin(PhotonStruct* p, float g, unsigned long long* x, unsigned int* a)
 {
-	float cost, sint;	// cosine and sine of the polar deflection angle theta. 
-	float cosp, sinp;	// cosine and sine of the azimuthal angle psi. 
+	float cost, sint;	// cosine and sine of the polar deflection angle theta.
+	float cosp, sinp;	// cosine and sine of the azimuthal angle psi.
 	float temp;
 	float tempdir=p->dx;
-		
+
 	//GLASS LAYER: se si muove parallelo ai layer non scatterare
-	
+
 	//if (layers_dc[p->layer].mutr==FLT_MAX){
 	//	printf("glass\n");
 	//	 return; //we are in glass...so no spin
 	//}
-	
+
 	//This is more efficient for g!=0 but of course less efficient for g==0
 	temp = __fdividef((1.0f-(g)*(g)),(1.0f-(g)+2.0f*(g)*rand_MWC_co(x,a)));//Should be close close????!!!!!
 	cost = __fdividef((1.0f+(g)*(g) - temp*temp),(2.0f*(g)));
@@ -211,7 +211,7 @@ __device__ void Spin(PhotonStruct* p, float g, unsigned long long* x, unsigned i
 	sint = sqrtf(1.0f - cost*cost);
 
 	__sincosf(2.0f*PI*rand_MWC_co(x,a),&sinp,&cosp);// spin psi [0-2*PI)
-	
+
 	temp = sqrtf(1.0f - p->dz*p->dz);
 
 	if(temp==0.0f) //normal incident.
@@ -240,7 +240,7 @@ __device__ int Intersection(PhotonStruct* p, float* s)
 {
 	float A,B,C,ss=*s;
 	short int new_layer=p->layer;
-		 
+
  	if((p->x+(*s)*p->dx)*(p->x+(*s)*p->dx)+(p->y+(*s)*p->dy)*(p->y+(*s)*p->dy)>Radius_dc[0]*Radius_dc[0]) //Check for lateral boundary hit
  	{
 		A=1.0f-(p->dz)*(p->dz);
@@ -263,7 +263,7 @@ __device__ int Intersection(PhotonStruct* p, float* s)
  		p->t_left=(ss-(*s))/layers_dc[p->layer].mutr;
  		return p->layer+1;
  	} //Check for downward reflection/transmission
-	 
+
 	  //QUALE soluz prendere??
 // 	  if (s_cyl<(*s))
 // 	  {
@@ -283,8 +283,8 @@ __device__ unsigned int Reflect(PhotonStruct* p, int new_layer, unsigned long lo
 	float n1 = layers_dc[p->layer].n;
 	float rad=sqrtf(p->x*p->x+p->y*p->y);
 	float normx=0.0f,normy=0.0f,normz=0.0f;
-	
-	
+
+
 	float n2;//n2 = layers_dc[new_layer].n;
 	float r;
 	float cos_angle_i;//cos_angle_i = fabsf(p->dz);
@@ -299,7 +299,7 @@ __device__ unsigned int Reflect(PhotonStruct* p, int new_layer, unsigned long lo
 		normz=-copysignf(1.0f,p->dz);
 		cos_angle_i = fabsf(p->dz);
 	}
-	
+
 	if(n1==n2){//refraction index matching automatic transmission and no direction change
 		p->layer = new_layer;
 		return 0u;
@@ -309,9 +309,9 @@ __device__ unsigned int Reflect(PhotonStruct* p, int new_layer, unsigned long lo
 		p->dx+=2.0f*cos_angle_i*normx;
 		p->dy+=2.0f*cos_angle_i*normy;
 		p->dz+=2.0f*cos_angle_i*normz;
-	  	p->t_left=0.0f;  
+	  	p->t_left=0.0f;
 		//p->dz *= -1.0f;
-		return 1u; 
+		return 1u;
 	}
 
 	if(cos_angle_i==1.0f){//normal incident
@@ -334,7 +334,7 @@ __device__ unsigned int Reflect(PhotonStruct* p, int new_layer, unsigned long lo
 			//{
 			//	p->layer = new_layer;
 			//	return 0u;
-			//}else 
+			//}else
 			//{
 			p->layer=new_layer;
 			p->t_left=0.0f;
@@ -342,16 +342,16 @@ __device__ unsigned int Reflect(PhotonStruct* p, int new_layer, unsigned long lo
 			//}
 		}
 	}
-	
+
 	//gives almost exactly the same results as the old MCML way of doing the calculation but does it slightly faster
 	// save a few multiplications, calculate cos_angle_i^2;
 	float e = __fdividef(n1*n1,n2*n2)*(1.0f-cos_angle_i*cos_angle_i); //e is the sin square of the transmission angle
 	r=2*sqrtf((1.0f-cos_angle_i*cos_angle_i)*(1.0f-e)*e*cos_angle_i*cos_angle_i);//use r as a temporary variable
 	e=e+(cos_angle_i*cos_angle_i)*(1.0f-2.0f*e);//Update the value of e
-	r = e*__fdividef((1.0f-e-r),((1.0f-e+r)*(e+r)));//Calculate r	
+	r = e*__fdividef((1.0f-e-r),((1.0f-e+r)*(e+r)));//Calculate r
 
 	if(rand_MWC_co(x,a)<=r)
-	{ 
+	{
 		// Reflection, mirror z-direction!
 		//p->dz *= -1.0f;
 		p->dx+=2.0f*cos_angle_i*normx;
@@ -374,7 +374,7 @@ __device__ unsigned int Reflect(PhotonStruct* p, int new_layer, unsigned long lo
 		p->t_left=0.0f;
 		return 0u;
 	  }
-	  else 
+	  else
 	  	{
 	  	p->layer = new_layer;
 	  	p->t_left=0.0f;
@@ -389,13 +389,13 @@ __device__ void DetectAndSavePath(MemStruct* DeviceMem,PhotonStruct* p, int new_
 {
 	float distance=sqrtf(p->x*p->x+p->y*p->y);
 	unsigned int pos;
-	
+
 	// ******** DIFFUSE REFLECTANCE ***********
-	if(new_layer == 0){ 		
+	if(new_layer == 0){
 		p->weight = 0u;// Set the remaining weight to 0, effectively killing the photon
-		
+
 		// Do I want to save Reflectance ?
-		if (RorT_dc=='R'){ 
+		if (RorT_dc=='R'){
 			// Does the photon hit a detector?
 			if  ((distance>=detectors_dc[0]) && (distance<=detectors_dc[1])){
 				pos=DeviceMem->received[thd_id];
@@ -405,25 +405,25 @@ __device__ void DetectAndSavePath(MemStruct* DeviceMem,PhotonStruct* p, int new_
 					*(DeviceMem->path+(i_lay)*NUM_THREADS*N_photons_dc[0]+thd_id*N_photons_dc[0]+pos) = p->t[i_lay];
 				}
 			}
-		} 
+		}
 	}
-	
-	// ********* DIFFUSE TRANSMITTANCE *********					
+
+	// ********* DIFFUSE TRANSMITTANCE *********
 	if(new_layer > *n_layers_dc){
-		p->weight = 0u; // Set the remaining weight to 0, effectively killing the photon 
+		p->weight = 0u; // Set the remaining weight to 0, effectively killing the photon
 		// Do I want to save transmittance ?
 		if (RorT_dc=='T'){
 			if  ((distance>=detectors_dc[0]) && (distance<=detectors_dc[1])){
 				pos=DeviceMem->received[thd_id];
-				DeviceMem->received[thd_id]++; 
+				DeviceMem->received[thd_id]++;
 				for(short i_lay=0;i_lay<n_layers_dc[0];i_lay++)
 				{ //salva cammini
 					*(DeviceMem->path+(i_lay)*NUM_THREADS*N_photons_dc[0]+thd_id*N_photons_dc[0]+pos) = p->t[i_lay];
 				}
-			}							
- 		} 
+			}
+ 		}
 	}
-	
+
 	// PHOTON OUT LATERAL
 	if(new_layer==-10)
 	{
