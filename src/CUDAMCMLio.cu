@@ -260,7 +260,6 @@ int read_simulation_data(char* filename, SimulationStruct** simulations)//, int 
 	FILE * pFile;
 	char mystring [STR_LEN];
 	char str[STR_LEN],buf[STR_LEN];
-	char AorB;
 	float radius,dtot=0;
 	
 	unsigned int tmax;

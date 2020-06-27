@@ -147,7 +147,7 @@ void DoOneSimulation(SimulationStruct* simulation,unsigned long long seed)//AF, 
 		for (int j=0;j<simulation->n_detectors;j++) printf("Detector %d\t\t",j+1);
 		printf("\n");
 		printf("Active Threads\tReceived Ph.\t");
-		for (int j=0;j<simulation->n_detectors;j++) printf("Launched Ph.\t",j+1);
+		for (int j=0;j<simulation->n_detectors;j++) printf("Launched Ph.\t");
 		printf("\n");
 		printf("-------------------------------------------------------------\n");	
 		cudaDeviceSynchronize();	
