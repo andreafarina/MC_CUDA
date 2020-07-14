@@ -174,27 +174,7 @@ int Write_Simulation_Results2(MemStruct* HostMem, SimulationStruct* sim)//, cloc
 	  }
 	printf("Zero path = %d\n",zeropath);
   	   	  
-   	   
-	  
-	//fseek(sim->pout,(k-1)*sizeof(float)*N_photons,SEEK_CUR);
-	//}
-	//fwrite(buffer[i],sizeof(float),N_photons,sim->pout);
-	//fseek(sim->pout,-(int)(k*(sim->n_detectors*sim->n_layers-1)*N_photons)*sizeof(float),SEEK_CUR);
-	
-	
-	
-	
-	
-	//fwrite(HostMem->distance,sizeof(float),NUMSTEPS_GPU*NUM_THREADS,sim->pout);
-	//fseek(sim->pout,(k-1)*sizeof(float)*NUMSTEPS_GPU*NUM_THREADS,SEEK_CUR);
-	
-	
- 	//fclose(pFile_outp);
-	
-	//fwrite(HostMem->Tdistance,sizeof(float),NUMSTEPS_GPU*NUM_THREADS,pFile_outpT);
-	//fwrite(HostMem->Tpath,sizeof(float),NUMSTEPS_GPU*NUM_THREADS,pFile_outpT);
- 	//fclose(pFile_outpT);
- 	return 0;
+   	return 0;
  
  }
 
@@ -218,7 +198,6 @@ int readfloats(int n_floats, float* temp, FILE* pFile)
 		memset(temp,0,NFLOATS*sizeof(float));
 		ii=sscanf(mystring,"%f %f %f %f %f",&temp[0],&temp[1],&temp[2],&temp[3],&temp[4]);
 		if(ii>n_floats) return 0; //if we read more number than defined something is wrong with the file!
-		//printf("ii=%d temp=%f %f %f %f %f\n",ii,temp[0],temp[1],temp[2],temp[3],temp[4]);
 	}
 	return 1; // Everyting appears to be ok!
 }
@@ -332,20 +311,7 @@ int read_simulation_data(char* filename, SimulationStruct** simulations)//, int 
 		printf("Number of photons: %lu\n",number_of_photons);
 		(*simulations)[i].number_of_photons=number_of_photons;
 
-		// Read dr and dz (2x float)
-//		if(!readfloats(2, ftemp, pFile)){perror ("Error reading dr and dz");return 0;}
-		//printf("dz=%f, dr=%f\n",ftemp[0],ftemp[1]);
-//AF		(*simulations)[i].det.dz=ftemp[0];
-//AF		(*simulations)[i].det.dr=ftemp[1];
-
-		// Read No. of dz, dr and da  (3x int)
-//		if(!readints(3, itemp, pFile)){perror ("Error reading No. of dz, dr and da");return 0;}
-		//printf("No. of dz=%d, dr=%d, da=%d\n",itemp[0],itemp[1],itemp[2]);
-//AF		(*simulations)[i].det.nz=itemp[0];
-//AF		(*simulations)[i].det.nr=itemp[1];
-//AF		(*simulations)[i].det.na=itemp[2];
-
-//AF aggiunta TMax e Rifle or Transmittance
+		//AF aggiunta TMax e Rifle or Transmittance
 		// Read TMAX
 		ii=0;
 		 

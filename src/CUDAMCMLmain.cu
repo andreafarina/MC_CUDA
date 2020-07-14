@@ -50,26 +50,19 @@
 //#include <cutil.h>
 #include "CUDAMCML.h"
 
-//__device__ __constant__ unsigned int num_photons_dc[1];	
 __device__ __constant__ unsigned int n_layers_dc[1],n_detectors_dc[1];
 __device__ __constant__ unsigned long int N_photons_dc[1];
 __device__ __constant__ float detectors_dc[2*MAX_DETECTORS];
-//__device__ __constant__ unsigned int start_weight_dc[1];	
 __device__ __constant__ LayerStruct layers_dc[MAX_LAYERS];	
-//__device__ __constant__ DetStruct det_dc[1];		
 __device__ __constant__ unsigned int tmax_dc[1];
 __device__ __constant__ char RorT_dc;	
 __device__ __constant__ float Radius_dc[1];
-//__device__ unsigned long long int pos;
 __device__ size_t pitch_dc[1];
-//__device__ float * row;
 
 #include "CUDAMCMLmem.cu"
 #include "CUDAMCMLio.cu"
 #include "CUDAMCMLrng.cu"
 #include "CUDAMCMLtransport.cu"
-
-
 
 
 // wrapper for device code
@@ -78,36 +71,24 @@ void DoOneSimulation(SimulationStruct* simulation,unsigned long long seed)//AF, 
 	MemStruct DeviceMem;
 	MemStruct HostMem;
 	ThreadStates tstates;	
-	//unsigned int threads_active_total=1;
+	
 	unsigned int size;
 	unsigned int threads_active_total=1;
-	
-	//unsigned long N_photons;
-	
 	
 	unsigned long long x[NUM_THREADS];//AF
 	unsigned int a[NUM_THREADS];
 	
-	//unsigned long long int n_launched_det[MAX_DETECTORS];
 	unsigned long long int num_photons_launched=0;
 	unsigned long long int num_photons_received=0;
-	//float **buffer;
-	//unsigned long int* buffer2;
-
-    cudaError_t cudastat;
-    clock_t time1,time2;
+	
+    	cudaError_t cudastat;
+    	clock_t time1,time2;
 
 
 	// Start the clock
-    
-	dim3 dimBlock(NUM_THREADS_PER_BLOCK);
-    dim3 dimGrid(NUM_BLOCKS);
+    	dim3 dimBlock(NUM_THREADS_PER_BLOCK);
+    	dim3 dimGrid(NUM_BLOCKS);
 
-	// x and a are already initialised in memory
-	//AF HostMem.x=x;
-	//HostMem.a=a;
-	
-	
 
 //	if (!Open_Output_Stream(simulation))
 //		return;			
@@ -121,8 +102,6 @@ void DoOneSimulation(SimulationStruct* simulation,unsigned long long seed)//AF, 
 	
 	HostMem.x=&x[0];
 	HostMem.a=&a[0];
-	//for(int i=0;i<NUM_THREADS;i++)
-	// printf("x=%u \ta=%u\n",HostMem.x[i],HostMem.a[i]);
 	 
 	InitMemStructs(&HostMem, &DeviceMem, &tstates, simulation);
 	InitDCMem(simulation);
@@ -154,24 +133,23 @@ void DoOneSimulation(SimulationStruct* simulation,unsigned long long seed)//AF, 
 		time1=clock();
 		//while(threads_active_total>0){
 		while(num_photons_received<simulation->number_of_photons){  
-		//for  (int i=0;i<2;i++){
-			//printf("DEBUG: before Mcd \n");
+			
 			MCd<<<dimGrid,dimBlock>>>(DeviceMem,tstates);
 			cudaDeviceSynchronize(); // Wait for all threads to finish
-			//printf("while...");
+			
 			threads_active_total=0;
 			num_photons_received=0;
 			num_photons_launched=0;	
 			
-			
-			
+						
 			//copia tstates.thd_active in HostMem.thd_Active
 			size=NUM_THREADS*sizeof(unsigned short int);
 			cudaMemcpy(HostMem.thd_active,DeviceMem.thd_active,size,cudaMemcpyDeviceToHost);
-			//printf("%u\t",HostMem.thd_active[0]);
+			
 			//somma sui threads
 			for (int i=0;i<NUM_THREADS;i++) threads_active_total+=HostMem.thd_active[i];
 			printf("%u\t\t",threads_active_total);
+
 			//copia il conteggio dei fotoni ricevuti x ogni thread
 			size=NUM_THREADS*sizeof(unsigned long int);
 			cudaMemcpy(HostMem.received,DeviceMem.received,size,cudaMemcpyDeviceToHost);
@@ -183,22 +161,14 @@ void DoOneSimulation(SimulationStruct* simulation,unsigned long long seed)//AF, 
 			//copia il conteggio dei fotoni lanciati x ogni thread
 			size=NUM_THREADS*sizeof(unsigned long int);
 			cudaMemcpy(HostMem.counter,DeviceMem.counter,size,cudaMemcpyDeviceToHost);
+
 			//copia ismoving
 			size=NUM_THREADS*sizeof(unsigned short int);
 			cudaMemcpy(HostMem.ismoving,DeviceMem.ismoving,size,cudaMemcpyDeviceToHost);
 					
-			
 			//somma sui threads
 			for (int i=0;i<NUM_THREADS;i++) num_photons_launched+=(HostMem.counter[i]-HostMem.ismoving[i]);
 			printf("%llu\n",num_photons_launched);
-						
- 			//for (int i=0;i<NUM_THREADS;i++){
-			//printf("Launched photons in thread %d=%lu\n",i,HostMem.counter[i]);
-			
-
-		//}	
-		//cudaDeviceSynchronize();
-		
 		}
 		printf("-------------------------------------------------------------\n");
 		
@@ -221,42 +191,21 @@ void DoOneSimulation(SimulationStruct* simulation,unsigned long long seed)//AF, 
 		}
 		printf("------------------------------------------\n");
 		
-// DEBUG
-// printf("Host Memory\n");
-//   	for(int j=0;j<simulation->n_detectors*simulation->n_layers;j++){
-//   	   for (int i=0;i<N_photons;i++) 
-//   	     //{if(HostMem.path[j][i]<0.6f)
-//   	     printf("%f  \t",HostMem.path[j][i]);
-//   	     printf("\n");
-//    	   }
-// 	
-
-	
-	
-	//free(buffer);
-	
 	
 	if (!Open_Output_Stream(simulation))
 		return;
 	//write detected photons for each detector
-	//for (int i=0;i<simulation->n_detectors;i++)
 	fwrite(&num_photons_received,sizeof(unsigned long long int),simulation->n_detectors,simulation->pout);
-	//for (int i=0;i<simulation->n_detectors;i++)
 	fwrite(&num_photons_launched,sizeof(unsigned long long int),simulation->n_detectors,simulation->pout);
-	
 	
 	Write_Simulation_Results2(&HostMem, simulation);
 	FreeDeviceMem(&DeviceMem,&tstates);
 	FreeHostMem(&HostMem);
-//fseek(simulation->pout,0,SEEK_END);
-//fwrite(&HostMem.ph_launched,sizeof(unsigned long long int),1,simulation->pout);
-Close_Output_Strem(simulation);
-//time2=clock();
-printf("Simulation time: %.2f sec\n",(double)(time2-time1)/CLOCKS_PER_SEC);
-printf("Simulation done!\n");
-
+	Close_Output_Strem(simulation);
+	
+	printf("Simulation time: %.2f sec\n",(double)(time2-time1)/CLOCKS_PER_SEC);
+	printf("Simulation done!\n");
 }
-
 
 
 int main(int argc,char* argv[])
@@ -265,24 +214,22 @@ int main(int argc,char* argv[])
 	SimulationStruct* simulations;
 	int n_simulations;
 	unsigned long long seed = (unsigned long long) time(NULL);// Default, use time(NULL) as seed
-	//int ignoreAdetection = 0;
 	char* filename;
-	//show cuda
+	
+	//show cuda device
 	int nDevices;
 
-  cudaGetDeviceCount(&nDevices);
-  for (int i = 0; i < nDevices; i++) {
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, i);
-    printf("Device Number: %d\n", i);
-    printf("  Device name: %s\n", prop.name);
-    printf("  Memory Clock Rate (KHz): %d\n",
-           prop.memoryClockRate);
-    printf("  Memory Bus Width (bits): %d\n",
-           prop.memoryBusWidth);
-    printf("  Peak Memory Bandwidth (GB/s): %f\n\n",
-           2.0*prop.memoryClockRate*(prop.memoryBusWidth/8)/1.0e6);
-  }
+  	cudaGetDeviceCount(&nDevices);
+  	for (int i = 0; i < nDevices; i++)
+	{
+    		cudaDeviceProp prop;
+    		cudaGetDeviceProperties(&prop, i);
+    		printf("Device Number: %d\n", i);
+    		printf("  Device name: %s\n", prop.name);
+    		printf("  Memory Clock Rate (KHz): %d\n", prop.memoryClockRate);
+    		printf("  Memory Bus Width (bits): %d\n", prop.memoryBusWidth);
+    		printf("  Peak Memory Bandwidth (GB/s): %f\n\n", 2.0*prop.memoryClockRate*(prop.memoryBusWidth/8)/1.0e6);
+  	}
 	
 	if(argc<2){printf("Not enough input arguments!\n");return 1;}
 	else{filename=argv[1];}
@@ -293,8 +240,6 @@ int main(int argc,char* argv[])
 	printf("============================================================\n\n");
 	n_simulations = read_simulation_data(filename, &simulations);
 	
-	
-
 	if(n_simulations == 0)
 	{
 		printf("Something wrong with read_simulation_data!\n");
@@ -306,22 +251,12 @@ int main(int argc,char* argv[])
 		printf("Read %d simulations\n",n_simulations);
 	}
 
-	// Allocate memory for RNG's
-	//AFunsigned long long x[NUM_THREADS];
-	//unsigned int a[NUM_THREADS];
-
-	//file = fopen("outp2.txt", "w");
-	//fclose(file);
-	
-	//Init RNG's
-	//AF if(init_RNG(x, a, NUM_THREADS, "safeprimes_base32.txt", seed)) return 1;
-
 	
 	//perform all the simulations
 	for(i=0;i<n_simulations;i++)
 	{
 		//seed = (unsigned long long) time(NULL);// Default, use time(NULL) as seed
-	 // if(init_RNG(x, a, NUM_THREADS, "safeprimes_base32.txt", seed)) return 1;
+	 	// if(init_RNG(x, a, NUM_THREADS, "safeprimes_base32.txt", seed)) return 1;
 	  // Run a simulation
 	 
 	  PrintSimulationData(simulations[i],i+1); //Write Simulation data to display

@@ -5,21 +5,21 @@
 
 #### SPECIFY DATA FOR RUN 1
 ##InParm									# Input parameters. cm is used.
-test.mco	A								# output file name, NO ASCII.
-668228										# Number of photons per detectors
-10000										# Time Max (ps)
+testRaman.mco	A								# output file name, NO ASCII.
+1000000									# Number of photons per detectors
+5000										# Time Max (ps)
 R											# R=Reflectance, T=Transmittance
-100.0										# Radius of the cylinder
+100											# Radius of the cylinder
 
 1											# Numberes of detectors
 #r1	r2										# One line for each detector (cm)
-0.95	1.050000
+0.9500000	1.050000
 
 
 1											# Number of layers
 #n		mua		mus			g		d		# One line for each layer
 1.00										# n for medium above and lateral 
-1.40	0.00	50.0	0.80	100	# layer 1
+1.40	0.00	10	0.0		100		# layer 1
 1.00										# n for medium below
 
 
