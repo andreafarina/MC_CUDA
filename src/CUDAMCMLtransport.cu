@@ -19,8 +19,8 @@ __global__ void MCd(MemStruct DeviceMem,ThreadStates tstates);
 __device__ float rand_MWC_oc(unsigned long long*,unsigned int*);
 __device__ float rand_MWC_co(unsigned long long*,unsigned int*);
 
-__device__ void LaunchPhoton(PhotonStruct*);//,unsigned long long*, unsigned int*);
-__global__ void LaunchPhoton_Global(ThreadStates);
+__device__ void LaunchPhoton(PhotonStruct*,unsigned long long*, unsigned int*);
+__global__ void LaunchPhoton_Global(ThreadStates,MemStruct DeviceMem);
 __device__ void RestoreStates(MemStruct* DeviceMem,ThreadStates* tstates,PhotonStruct* p,unsigned long long* x,unsigned int* a);
 __device__ void SaveStates(MemStruct* DeviceMem,ThreadStates* tstates,PhotonStruct* p,unsigned long long x);
 __device__ void ComputeStepSize(PhotonStruct* p, float* s,unsigned long long* x, unsigned int* a);
@@ -67,7 +67,7 @@ __global__ void MCd(MemStruct DeviceMem, ThreadStates tstates)
 
  		if ((p.weight == 0u)){ //NEW PHOTON
  			if (DeviceMem.received[thd_id] < N_photons_dc[0]){
- 		    		LaunchPhoton(&p);
+ 		    		LaunchPhoton(&p,&x,&a);
  		  		DeviceMem.counter[thd_id]++;
  		  	}else{
 				DeviceMem.thd_active[thd_id]=0;
@@ -80,11 +80,18 @@ __global__ void MCd(MemStruct DeviceMem, ThreadStates tstates)
 }//end MCd
 
 //*********************************** LaunchPhoton ****************************************
-__device__ void LaunchPhoton(PhotonStruct* p)//per fibra con NA, unsigned long long* x, unsigned int* a)
+__device__ void LaunchPhoton(PhotonStruct* p, unsigned long long* x, unsigned int* a)
 {
 	// We are currently not using the RNG but might do later
-	p->x  = 0.0f;
-	p->y  = 0.0f;
+	float sinp,cosp;
+	float rad = rand_MWC_co(x,a)*0.15f;
+	__sincosf(2.0f*PI*rand_MWC_co(x,a),&sinp,&cosp);
+	
+	p->x  = cosp*rad;
+	p->y  = sinp*rad;
+	//printf("%f",rad);
+	//p->x  = 0.0f;
+	//p->y  = 0.0f;
 	p->z  = 0.0f;
 	p->dx = 0.0f;
 	p->dy = 0.0f;
@@ -100,12 +107,17 @@ __device__ void LaunchPhoton(PhotonStruct* p)//per fibra con NA, unsigned long l
 }
 
 //*********************************** LaunchPhoton_Global ****************************************
-__global__ void LaunchPhoton_Global(ThreadStates tstates)//PhotonStruct* pd, unsigned long long* x, unsigned int* a)
+__global__ void LaunchPhoton_Global(ThreadStates tstates,MemStruct DeviceMem)
 {
 	int thd_id=NUM_THREADS_PER_BLOCK*blockIdx.x+threadIdx.x;
     	PhotonStruct p;
+    	unsigned long long int x;	//coherent
+ 	unsigned int a;			//coherent
+ 	
 
-	LaunchPhoton(&p);
+ 	RestoreStates(&DeviceMem,&tstates,&p,&x,&a);
+
+	LaunchPhoton(&p,&x,&a);
 
 	tstates.x[thd_id]=p.x;
 	tstates.y[thd_id]=p.y;

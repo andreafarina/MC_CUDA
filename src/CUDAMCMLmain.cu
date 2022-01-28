@@ -115,7 +115,7 @@ void DoOneSimulation(SimulationStruct* simulation,unsigned long long seed)//AF, 
 	
 	printf("======================= RUN SIMULATIONS =====================\n");
 	printf("LaunchPhotonGlobal...");
-	LaunchPhoton_Global<<<dimGrid,dimBlock>>>(tstates);
+	LaunchPhoton_Global<<<dimGrid,dimBlock>>>(tstates,DeviceMem);
 	printf("Ok!\n");
 	cudaDeviceSynchronize(); // Wait for all threads to finish
 	cudastat=cudaGetLastError(); // Check if there was an error
