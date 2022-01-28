@@ -5,7 +5,7 @@
 
 #### SPECIFY DATA FOR RUN 1
 ##InParm									# Input parameters. cm is used.
-test_2lay.mco	A								# output file name, NO ASCII.
+single_2layers.mco	A								# output file name, NO ASCII.
 668228										# Number of photons per detectors
 10000										# Time Max (ps)
 R											# R=Reflectance, T=Transmittance

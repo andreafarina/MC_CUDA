@@ -5,7 +5,7 @@
 
 #### SPECIFY DATA FOR RUN 1
 ##InParm									# Input parameters. cm is used.
-testRaman.mco	A								# output file name, NO ASCII.
+single.mco	A								# output file name, NO ASCII.
 1000000									# Number of photons per detectors
 5000										# Time Max (ps)
 R											# R=Reflectance, T=Transmittance
