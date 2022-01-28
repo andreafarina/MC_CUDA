@@ -24,7 +24,7 @@
 
 #ifdef __linux__ //uses 25 registers per thread (64-bit)
 	#define NUM_BLOCKS 2048         //256//256// 330 //64//MAX 192//64//256  //Keep numblocks a multiple of the #MP's of the GPU (8800GT=14MP)
-	#define NUM_THREADS_PER_BLOCK 256   //256 //224//384//176//384//320 //Keep above 192 to eliminate global memory access overhead However, keep low to allow enough registers per thread
+	#define NUM_THREADS_PER_BLOCK 256//256   //256 //224//384//176//384//320 //Keep above 192 to eliminate global memory access overhead However, keep low to allow enough registers per thread
 	#define NUM_THREADS  (NUM_BLOCKS*NUM_THREADS_PER_BLOCK) //81920//98304//49152//16384//5632//13440//24576//11264//22528//11264//24576//MAX 61440
 #endif
 //DEBUG
