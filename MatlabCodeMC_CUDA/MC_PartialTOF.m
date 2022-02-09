@@ -1,4 +1,4 @@
-function [time TOFs]=MC_PartialTOF(Sim,n_chan,dt,mua,kind)
+function [time, TOFs]=MC_PartialTOF(Sim,n_chan,dt,mua,kind)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % MC_PartialTOF.m
@@ -59,7 +59,7 @@ for i=1:1
     end
     
     Simul(i,:)=accumarray(bins',weight,[numel(time) 1],@sum);
-    l_weight=length.*repmat(weight,N_LAYERS,[]);
+    l_weight=length.*repmat(weight,N_LAYERS,1);
     for i=1:N_LAYERS
         TOFs(i,:)=accumarray(bins',l_weight(i,:),[numel(time) 1],@sum);
     end

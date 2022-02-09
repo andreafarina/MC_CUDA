@@ -53,7 +53,7 @@ __global__ void MCd(MemStruct DeviceMem, ThreadStates tstates)
 	for(ii = 0;ii < iexit;ii++) //this is the main while loop
  	{
  		ComputeStepSize(&p, &s, &x, &a);
- 		new_layer = Intersection(&p, &s);
+ 		new_layer = Intersection(&p, &s); //it updates s!!
  		Hop(&p, s);
  		if (p.time_tot >= tmax_dc[0]) p.weight=0u;
 
