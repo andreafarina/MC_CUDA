@@ -173,6 +173,22 @@ int Write_Simulation_Results2(MemStruct* HostMem, SimulationStruct* sim)//, cloc
 	  	}
 	  }
 	printf("Zero path = %d\n",zeropath);
+	  zeropath = 0;
+  	  for(int j=0;j<sim->n_detectors*sim->n_layers;j++){
+		for(int i=0;i<NUM_THREADS;i++){
+			int n_phot=HostMem->received[i];
+	  		//printf("%d\n",n_phot);
+	  		fwrite(&HostMem->kappa[j*NUM_THREADS*N_photons_per_thd+N_photons_per_thd*i],sizeof(unsigned short int),n_phot,sim->pout);
+			//if(i==1){
+			for(int ip=0;ip<n_phot;ip++){
+				//	printf("%.10f\n",HostMem->path[j*NUM_THREADS*N_photons_per_thd+N_photons_per_thd*i+ip]);
+				
+				if (HostMem->kappa[j*NUM_THREADS*N_photons_per_thd+N_photons_per_thd*i+ip]<1) zeropath++;
+			}
+				//}
+	  	}
+	  }
+  	
   	   	  
    	return 0;
  

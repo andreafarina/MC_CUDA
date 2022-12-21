@@ -1,9 +1,9 @@
-function [time counts stdev]=MC_ExtractSimulation(Sim,n_chan,dt,mua,N_TOT,PLOT)
+function [time, counts, stdev, dmua, dmus]=MC_ExtractSimulation(Sim,n_chan,dt,mua,musp,PLOT)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % MC_ExtractSimulation.m
 % 
-% [time counts stdev]=MC_ExtractSimulation(Sim,n_chan,dt,mua,N_TOT,PLOT)
+% [time counts stdev, dmua, dmus] = MC_ExtractSimulation(Sim,n_chan,dt,mua,musp,PLOT)
 % 
 % This routine extracts TR profiles from Simulation Data.
 % 
@@ -11,7 +11,7 @@ function [time counts stdev]=MC_ExtractSimulation(Sim,n_chan,dt,mua,N_TOT,PLOT)
 % n_chan:   number of temporal windows
 % dt:       width of the temporal window
 % mua:      absorption vector (mua=[1 X Num_Layers]
-% N_TOT:    total counts (Area) if =0 then it uses the effective photons
+% musp:     apply scaling rules [0 for disabling the feature, musprime!]
 % PLOT:     flag for plotting output if =0 the plot is not shown
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 
@@ -19,36 +19,49 @@ function [time counts stdev]=MC_ExtractSimulation(Sim,n_chan,dt,mua,N_TOT,PLOT)
 
 
 %% READ SIM STRUCTURE %%
-N_LAYERS=Sim.Sample.N_layers;
-N_DETECTORS=Sim.Detection.N_detectors;
-Data=Sim.Data;
-lay_prop=Sim.Sample.prop;
+N_LAYERS = Sim.Sample.N_layers;
+N_DETECTORS = Sim.Detection.N_detectors;
+Data = Sim.Data;
+Kappa = Sim.Kappa;
+lay_prop = Sim.Sample.prop;
+mus0 = lay_prop(:,2)';
+g = lay_prop(:,3)';
 
 if ((N_LAYERS)~=numel(mua))
     disp('Insert absorption for each layers as array');
-    time=-1;counts=-1;stdev=-1;
+    time = -1;counts = -1;stdev = -1;
     return
 end
 
-C=0.0299792458; %cm/ps
+C = 0.0299792458; %cm/ps
 
-time=(0:dt:(n_chan-1)*dt);%+dt/2;
-refind=lay_prop(:,1);
-v=C*ones(1,N_LAYERS)./refind';
+time = (0:dt:(n_chan-1)*dt);
+refind = lay_prop(:,1);
+v = C*ones(1,N_LAYERS)./refind';
 
-Simul=zeros(N_DETECTORS,n_chan);
+Simul = zeros(N_DETECTORS,n_chan);
 
 %% BIN SIMULATION DATA %%
 
 for i=1:N_DETECTORS
     
-    N_PHOTONS_DET=Sim.Detection.N_photons_det(i);
-    length=reshape(Data(i,:,:),N_LAYERS,N_PHOTONS_DET);  %cammini nei layers
-    % length=length(:,1:N_PHOTONS_DET);
-    weight=exp(-mua*length);
-    timep=(1./v)*length;
+    N_PHOTONS_DET = Sim.Detection.N_photons_det(i);
+    length = reshape(Data(i,:,:),N_LAYERS,N_PHOTONS_DET);  %cammini nei layers
+    k = reshape(Kappa(i,:,:),N_LAYERS,N_PHOTONS_DET);  %scattering events nei layers
+    weight_abs = exp(-mua*length);
+    if (nargin>4)&&(musp~=0)
+        mus = musp./(1-g);
+        logws = log(mus./mus0) * k;
+        logws2 = -(mus-mus0) * length;
+        weight_sca = exp(logws + logws2);
+    else
+        weight_sca = 1;
+    end
+        
+    weight = weight_abs.* weight_sca;
+    timep = (1./v)*length;
     
-    [n_bin,bins]=histc(timep,time);
+    [n_bin,bins] = histc(timep,time);
     %     if ~all(bins)
     %         disp('Increase the number of temporal windows to include all data');
     %         return;
@@ -56,63 +69,79 @@ for i=1:N_DETECTORS
     
     if ~all(bins)
         weight(bins==0)=[];
+        length(:,bins==0)=[];
+        k(:,bins==0)=[];
         bins(bins==0)=[];
     end
     
-    %tic
-    Simul(i,:)=accumarray(bins',weight,[numel(time) 1],@sum);
-    
-    %     for k=1:N_PHOTONS_DET
-    %         chan=bins(k);
-    %         if chan>0
-    %             Simul(i,chan)=Simul(i,chan)+weight(k);
-    %         end
-    %     end
-    %     toc
+    Sumweight(i,:) = accumarray(bins',weight,[numel(time) 1],@sum);
+    Sumweight2(i,:) = accumarray(bins',weight.^2,[numel(time) 1],@sum);
     
 end
 
-time=time+dt/2;
+time = time+dt/2;
 
 %% FLUENCE cm-2*ps-1 %%
-N_PHOTONS_LAUNCHED=Sim.Detection.N_photons_launched;
-R_DET=Sim.Detection.det;
-for i=1:N_DETECTORS
-    k=pi*dt*(R_DET(2*i).^2-R_DET(2*i-1).^2)*N_PHOTONS_LAUNCHED(i);
-    %k=1;
-    Simul(i,:)=Simul(i,:)./k;
-    if R_DET(2*i-1)==0
-        R_AV=0;
-        DR=R_DET(2*i);
+N_PHOTONS_LAUNCHED = Sim.Detection.N_photons_launched;
+R_DET = Sim.Detection.det;
+
+Simul2 = zeros(N_DETECTORS,n_chan);
+
+for i = 1:N_DETECTORS
+    fact = pi*dt*(R_DET(2*i).^2-R_DET(2*i-1).^2)*N_PHOTONS_LAUNCHED(i);
+    
+    Simul(i,:) = Sumweight(i,:)./fact;
+    Simul2(i,:) = Sumweight2(i,:)./(fact./2);
+    
+    % this is used only for the plot legend
+    if R_DET(2*i-1) == 0
+        R_AV = 0;
+        DR = R_DET(2*i);
     else
-        R_AV=(R_DET(2*i)+R_DET(2*i-1))/2;
-        DR=(R_DET(2*i)-R_DET(2*i-1))/2;
+        R_AV = (R_DET(2*i)+R_DET(2*i-1))/2;
+        DR = (R_DET(2*i)-R_DET(2*i-1))/2;
     end
 end
 
-%% Normalization
-if (N_TOT==0)
-    counts=Simul;
-else
-    S=sum(Simul,2);
-    counts=Simul./repmat(S,1,n_chan)*N_TOT;
-    %semilogy(time,Counts,'.'),grid
-    %return;
+counts = Simul;
+    
+%% Standard deviation
+if nargout > 2
+% metodo corretto
+stdev = sqrt((Simul2.^2 - Simul.^2)./(n_bin-1));
+% metodo approssimato con Bernoulli Poisson
+%stdev1 = counts./sqrt(n_bin);
+stdev(isnan(stdev)) = 0;
 end
-%% Standar deviation
-stdev=counts./sqrt(n_bin);
-stdev(isnan(stdev))=0;
-%% Plot
 
-if (PLOT==1)
+%% calculation of derivative (the scattering scaling is not considered)
+if nargout > 3
+    meanLength = zeros(N_LAYERS,n_chan);
+    meanKmus = zeros(N_LAYERS,n_chan);
+    % dmua
+    l_weight = repmat(weight,N_LAYERS,1).* length;
+    for i = 1:N_LAYERS
+        meanLength(i,:) = accumarray(bins',l_weight(i,:),[numel(time) 1],@sum);
+    end
+    meanLength = meanLength./Sumweight;
+    dmua = -meanLength.*counts;
+    % dmus
+    Kmus_weight = repmat(weight,N_LAYERS,1).* (k./mus0');
+    for i = 1:N_LAYERS
+        meanKmus(i,:) = accumarray(bins',Kmus_weight(i,:),[numel(time) 1],@sum);
+    end
+    meanKmus = meanKmus./Sumweight;
+    dmus = meanKmus.*counts + dmua;
+    dmua(isnan(dmua)) = 0;
+    dmus(isnan(dmus)) = 0;
+end
+
+%% Plot
+if (nargin > 5)&&(PLOT==1)
     stringa_leg=['r = ' num2str(R_AV,'%.2f')  ' +/- ' num2str(DR,'%.2f') ' cm'];
     m_legend(i,:)=stringa_leg;
     figure,semilogy(time,counts,'.'),grid
-    if (N_TOT==0)
-        y_label_str='Fluence [cm^{-2}ps^{-1}]';
-    else
-        y_label_str='Photons';
-    end
+    y_label_str='Fluence [cm^{-2}ps^{-1}]';
     xlabel('time [ps]'), ylabel (y_label_str)
     legend(m_legend);
 else

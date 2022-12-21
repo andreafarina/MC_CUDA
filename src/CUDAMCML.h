@@ -78,10 +78,11 @@ typedef struct //__align__(16)
 	float dy;		// (Global, normalized) y-direction
 	float dz;		// (Global, normalized) z-direction
 	float t[MAX_LAYERS];	// time of flight for each layer
+	unsigned short int k[MAX_LAYERS];	// number of scattering events for each layer.
 	float time_tot;		// total time of flight
 	float t_left;	//residual step
 	unsigned short int weight;	// Photon weight
-	unsigned short int layer;		// Current layer
+	unsigned short int layer;	// Current layer
 }PhotonStruct;
 
 typedef struct //__align__(16) 
@@ -93,6 +94,7 @@ typedef struct //__align__(16)
 	float* dy;		// (Global, normalized) y-direction
 	float* dz;		// (Global, normalized) z-direction
 	float* t;		// time of flight for each layer coalesced t1:NUM_THD:t2:NUM_THD:t3...
+	unsigned short int* k;	// number of scattering events for each layer coalesced t1:NUM_THD:t2:NUM_THD:t3...
 	float* time_tot;	// total time of flight
 	float* t_left;
 	unsigned short int* weight;	// Photon weight
@@ -127,5 +129,6 @@ typedef struct //__align__(8)
 	unsigned long int* counter;	// Pointer all'array contenente i fotoni lanciati in ogni thread
 	unsigned short int* thd_active;
 	float* path;			// path for each layers and detecors
+	unsigned short int* kappa;		// number of scattering interactions for each layers and detectors
 }MemStruct;
 

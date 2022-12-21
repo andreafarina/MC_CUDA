@@ -19,8 +19,8 @@ R											# R=Reflectance, T=Transmittance
 2											# Number of layers
 #n		mua		mus			g		d		# One line for each layer
 1.00										# n for medium above and lateral 
-1.40	0.00	50.0	0.80	1	# layer 1
-1.40	0.00	50.0	0.80	99	# layer 2
+1.40	0.00	10.0	0.00	1	# layer 1
+1.40	0.00	10.0	0.00	99	# layer 2
 1.00										# n for medium below
 
 

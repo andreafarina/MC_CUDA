@@ -54,11 +54,13 @@ int CopyDeviceToHostMem(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStru
 	size=N_photons*sizeof(float);
 	height=sim->n_detectors*sim->n_layers;
 	
-	cudaMemcpy(HostMem->path,DeviceMem->path,size*height,cudaMemcpyDeviceToHost);	
+	cudaMemcpy(HostMem->path,DeviceMem->path,size*height,cudaMemcpyDeviceToHost);
+	size=N_photons*sizeof(unsigned short int);
+	cudaMemcpy(HostMem->kappa,DeviceMem->kappa,size*height,cudaMemcpyDeviceToHost);	
 	//cudaDeviceSynchronize();	
 	cudastat=cudaGetLastError();
 	if(cudastat){
-		printf("DeviceMem->path to HostMem->path copy error, code=%i, %s.\n",cudastat,cudaGetErrorString(cudastat));
+		printf("DeviceMem->path to HostMem->path or kappa copy error, code=%i, %s.\n",cudastat,cudaGetErrorString(cudastat));
 		exit(1);
 	}
 	printf("Ok!\n");
@@ -142,7 +144,9 @@ int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, ThreadStates* tstat
 		
 	// Allocate 2D matrix in Device & Host Memory for pathlength: row->photons; height: rec1*n_layers + rec2*n_layers
 	HostMem->path=(float*) calloc(sim->n_detectors*sim->n_layers*N_photons,sizeof(float));
+	HostMem->kappa=(unsigned short int*) calloc(sim->n_detectors*sim->n_layers*N_photons,sizeof(unsigned short int));
 	if(HostMem->path==NULL){printf("Error allocating HostMem->path"); exit (1);}
+	if(HostMem->kappa==NULL){printf("Error allocating HostMem->kappa"); exit (1);}
 	
 	
 	size=N_photons*sizeof(float);	//width
@@ -152,9 +156,12 @@ int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, ThreadStates* tstat
 	cudaMalloc((void**)&DeviceMem->path,size*height);
 	cudaMemset(DeviceMem->path,0.0,size*height);
 	
+	size=N_photons*sizeof(unsigned short int);	//width
+	cudaMalloc((void**)&DeviceMem->kappa,size*height);
+	cudaMemset(DeviceMem->kappa,0.0,size*height);
 	cudastat=cudaGetLastError();
 	if(cudastat){
-		printf("DeviceMem->path allocation error, code=%i, %s.\n",cudastat,cudaGetErrorString(cudastat));
+		printf("DeviceMem->path or kappa allocation error, code=%i, %s.\n",cudastat,cudaGetErrorString(cudastat));
 		exit(1);
 	}
 	
@@ -226,6 +233,7 @@ int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, ThreadStates* tstat
 	cudaMalloc((void**)&tstates->time_tot,size);
 	cudaMalloc((void**)&tstates->t_left,size);
 	size=NUM_THREADS*sizeof(unsigned short int);
+	cudaMalloc((void**)&tstates->k,sim->n_layers*size);
 	cudaMalloc((void**)&tstates->layer,size);
 	cudaMalloc((void**)&tstates->weight,size);
 	
@@ -245,6 +253,7 @@ void FreeDeviceMem(MemStruct* DeviceMem, ThreadStates* tstates)
 	cudaFree(DeviceMem->x); DeviceMem->x = NULL;
   	cudaFree(DeviceMem->a); DeviceMem->a = NULL;
   	cudaFree(DeviceMem->path);
+  	cudaFree(DeviceMem->kappa);
   	cudaFree(tstates->x); tstates->x = NULL;
   	cudaFree(tstates->y); tstates->y = NULL;
   	cudaFree(tstates->z); tstates->z = NULL;
@@ -255,11 +264,13 @@ void FreeDeviceMem(MemStruct* DeviceMem, ThreadStates* tstates)
   	cudaFree(tstates->layer); tstates->layer = NULL;
   	cudaFree(tstates->time_tot); tstates->time_tot = NULL;
   	cudaFree(tstates->t); tstates->t = NULL;
+  	cudaFree(tstates->k); tstates->k = NULL;
   	cudaFree(tstates->t_left); tstates->t_left = NULL;
 }
 
 void FreeHostMem(MemStruct* HostMem){  
     	free(HostMem->path);
+    	free(HostMem->kappa);
    	free(HostMem->counter);
    	free(HostMem->received);
     	free(HostMem->thd_active);

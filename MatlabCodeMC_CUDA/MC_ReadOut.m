@@ -70,7 +70,16 @@ Data=zeros(N_DETECTORS, N_LAYERS, N_PHOT_DETECTED);
          
      end
  end
-%pippo=fread(fid,N_PHOTONS*N_LAYERS*N_DETECTORS,'float');
+% LETTURA numeo interazioni dis cattering Kappa
+Kappa = zeros(N_DETECTORS, N_LAYERS, N_PHOT_DETECTED);
+ for i=1:N_DETECTORS
+     for j=1:N_LAYERS
+        Kappa(i, j, :)=fread(fid, N_PHOT_DETECTED, 'short');
+         
+     end
+ end
+ 
+ %pippo=fread(fid,N_PHOTONS*N_LAYERS*N_DETECTORS,'float');
 
 %N_PHOTONS_LAUNCHED=fread(fid,1,'uint64');
 %display(['Launched photons=' num2str(N_PHOTONS_LAUNCHED)]);
@@ -99,3 +108,4 @@ Sim.Detection.N_photons_launched=N_PHOT_LAUNCHED;
 
 %% Sim.Data %%
 Sim.Data=Data;
+Sim.Kappa=Kappa;

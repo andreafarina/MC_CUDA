@@ -90,7 +90,10 @@ __device__ void LaunchPhoton(PhotonStruct* p)//per fibra con NA, unsigned long l
 	p->dy = 0.0f;
 	p->dz = 1.0f;
 
-	for (short int i = 0;i < n_layers_dc[0];i++) p->t[i] = 0.0f;
+	for (short int i = 0;i < n_layers_dc[0];i++) {
+		p->t[i] = 0.0f;
+		p->k[i] = 0u;
+	}
 	p->time_tot=0.0f;
 	p->layer = 1;
 	p->weight=1u;
@@ -113,7 +116,10 @@ __global__ void LaunchPhoton_Global(ThreadStates tstates)//PhotonStruct* pd, uns
 	tstates.dx[thd_id]=p.dx;
 	tstates.dy[thd_id]=p.dy;
 	tstates.dz[thd_id]=p.dz;
-	for (short int i=0;i<n_layers_dc[0];i++) tstates.t[i*NUM_THREADS+thd_id]=p.t[i];
+	for (short int i=0;i<n_layers_dc[0];i++) {
+		tstates.t[i*NUM_THREADS+thd_id]=p.t[i];
+		tstates.k[i*NUM_THREADS+thd_id]=p.k[i];
+	}
 	tstates.time_tot[thd_id]=p.time_tot;
 	tstates.layer[thd_id]=p.layer;
 	tstates.weight[thd_id]=p.weight;
@@ -132,7 +138,10 @@ __device__ void RestoreStates(MemStruct* DeviceMem,ThreadStates* tstates,PhotonS
  	p->dx = tstates->dx[thd_id];
  	p->dy = tstates->dy[thd_id];
  	p->dz = tstates->dz[thd_id];
- 	for (short int i = 0;i < n_layers_dc[0];i++) p->t[i] = tstates->t[i*NUM_THREADS+thd_id];
+ 	for (short int i = 0;i < n_layers_dc[0];i++) {
+ 	 	p->t[i] = tstates->t[i*NUM_THREADS+thd_id];
+ 	 	p->k[i] = tstates->k[i*NUM_THREADS+thd_id];
+ 	}
  	p->time_tot = tstates->time_tot[thd_id];
  	p->weight = tstates->weight[thd_id];
  	p->layer = tstates->layer[thd_id];
@@ -153,7 +162,10 @@ __device__ void SaveStates(MemStruct* DeviceMem,ThreadStates* tstates,PhotonStru
 	tstates->dx[thd_id] = p->dx;
 	tstates->dy[thd_id] = p->dy;
 	tstates->dz[thd_id] = p->dz;
-	for (short int i = 0;i < n_layers_dc[0];i++) tstates->t[i*NUM_THREADS+thd_id] = p->t[i];
+	for (short int i = 0;i < n_layers_dc[0];i++) {
+		tstates->t[i*NUM_THREADS+thd_id] = p->t[i];
+		tstates->k[i*NUM_THREADS+thd_id] = p->k[i];
+	}
 	tstates->time_tot[thd_id] = p->time_tot;
 	tstates->layer[thd_id] = p->layer;
 	tstates->weight[thd_id] = p->weight;
@@ -232,6 +244,8 @@ __device__ void Spin(PhotonStruct* p, float g, unsigned long long* x, unsigned i
 	p->dx = p->dx*temp;
 	p->dy = p->dy*temp;
 	p->dz = p->dz*temp;
+	p->k[p->layer-1]++;
+	//printf("kappa = %d",p->k[p->layer-1]);
 }// end Spin
 
 //************************************* Intersection ******************************************
@@ -403,6 +417,8 @@ __device__ void DetectAndSavePath(MemStruct* DeviceMem,PhotonStruct* p, int new_
 				for(short i_lay=0;i_lay<n_layers_dc[0];i_lay++)
 				{ //salva cammini
 					*(DeviceMem->path+(i_lay)*NUM_THREADS*N_photons_dc[0]+thd_id*N_photons_dc[0]+pos) = p->t[i_lay];
+				  // salva i K
+				  	*(DeviceMem->kappa+(i_lay)*NUM_THREADS*N_photons_dc[0]+thd_id*N_photons_dc[0]+pos) = p->k[i_lay];
 				}
 			}
 		}
@@ -419,6 +435,8 @@ __device__ void DetectAndSavePath(MemStruct* DeviceMem,PhotonStruct* p, int new_
 				for(short i_lay=0;i_lay<n_layers_dc[0];i_lay++)
 				{ //salva cammini
 					*(DeviceMem->path+(i_lay)*NUM_THREADS*N_photons_dc[0]+thd_id*N_photons_dc[0]+pos) = p->t[i_lay];
+				  // salva i K
+				  	*(DeviceMem->kappa+(i_lay)*NUM_THREADS*N_photons_dc[0]+thd_id*N_photons_dc[0]+pos) = p->k[i_lay];
 				}
 			}
  		}
