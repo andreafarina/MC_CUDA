@@ -188,7 +188,7 @@ int Write_Simulation_Results2(MemStruct* HostMem, SimulationStruct* sim)//, cloc
 				//}
 	  	}
 	  }
-  	
+  	printf("Zero path k = %d\n",zeropath);
   	   	  
    	return 0;
  
