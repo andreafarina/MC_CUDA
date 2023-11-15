@@ -1,4 +1,4 @@
-function [time, counts, stdev, dmua, dmus]=MC_ExtractSimulation(Sim,n_chan,dt,mua,musp,PLOT)
+function [time, counts, stdev, dmua, dmus, Zmax, Zmean]=MC_ExtractSimulation(Sim,n_chan,dt,mua,musp,PLOT)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % MC_ExtractSimulation.m
@@ -23,6 +23,8 @@ N_LAYERS = Sim.Sample.N_layers;
 N_DETECTORS = Sim.Detection.N_detectors;
 Data = Sim.Data;
 Kappa = Sim.Kappa;
+ZetaMax = Sim.Zmax;
+ZetaMean = Sim.sumZ./reshape(sum(Kappa,2),N_DETECTORS,[]);
 lay_prop = Sim.Sample.prop;
 mus0 = lay_prop(:,2)';
 g = lay_prop(:,3)';
@@ -48,15 +50,21 @@ for i=1:N_DETECTORS
     N_PHOTONS_DET = Sim.Detection.N_photons_det(i);
     length = reshape(Data(i,:,:),N_LAYERS,N_PHOTONS_DET);  %cammini nei layers
     k = reshape(Kappa(i,:,:),N_LAYERS,N_PHOTONS_DET);  %scattering events nei layers
+    zmax = reshape(ZetaMax(i,:),1,N_PHOTONS_DET);
+    zmean = reshape(ZetaMean(i,:),1,N_PHOTONS_DET);
     weight_abs = exp(-mua*length);
-    if (nargin>4)&&(musp~=0)
-        mus = musp./(1-g);
-        logws = log(mus./mus0) * k;
-        logws2 = -(mus-mus0) * length;
-        weight_sca = exp(logws + logws2);
-    else
-        weight_sca = 1;
-    end
+     if ~isempty(musp)
+        if ((nargin>4)&&prod(musp~=0))
+            mus = musp./(1-g);
+            logws = log(mus./mus0) * k;
+            logws2 = -(mus-mus0) * length;
+            weight_sca = exp(logws + logws2);
+        else
+            weight_sca = 1;
+        end
+     else
+       weight_sca = 1;  
+     end
         
     weight = weight_abs.* weight_sca;
     timep = (1./v)*length;
@@ -71,11 +79,15 @@ for i=1:N_DETECTORS
         weight(bins==0)=[];
         length(:,bins==0)=[];
         k(:,bins==0)=[];
+        zmax(:,bins==0) = [];
+        zmean(:,bins==0) = [];
         bins(bins==0)=[];
     end
     
     Sumweight(i,:) = accumarray(bins',weight,[numel(time) 1],@sum);
     Sumweight2(i,:) = accumarray(bins',weight.^2,[numel(time) 1],@sum);
+    Zmax(i,:) = accumarray(bins',weight.*zmax,[numel(time) 1],@sum)'./Sumweight(i,:);
+    Zmean(i,:) = accumarray(bins',weight.*zmean,[numel(time) 1],@sum)'./Sumweight(i,:);
     
 end
 
@@ -144,6 +156,9 @@ if (nargin > 5)&&(PLOT==1)
     y_label_str='Fluence [cm^{-2}ps^{-1}]';
     xlabel('time [ps]'), ylabel (y_label_str)
     legend(m_legend);
+    figure,plot(time,[Zmax',Zmean',Zmax'/2]),grid
+    xlabel('time [ps]'), ylabel ('<Zmax> [cm]'),
+    legend('<Zmax>','<Zmean>','<Zmax>/2')
 else
     return
 end

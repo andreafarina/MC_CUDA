@@ -7,7 +7,7 @@
 ##InParm									# Input parameters. cm is used.
 single.mco	A								# output file name, NO ASCII.
 1000000									# Number of photons per detectors
-5000										# Time Max (ps)
+4700										# Time Max (ps)
 R											# R=Reflectance, T=Transmittance
 100											# Radius of the cylinder
 

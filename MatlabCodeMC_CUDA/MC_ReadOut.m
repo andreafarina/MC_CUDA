@@ -78,7 +78,19 @@ Kappa = zeros(N_DETECTORS, N_LAYERS, N_PHOT_DETECTED);
          
      end
  end
- 
+
+% LETTURA Zmax
+Zmax = zeros(N_DETECTORS,N_PHOT_DETECTED);
+for i=1:N_DETECTORS
+    Zmax(i, :)=fread(fid, N_PHOT_DETECTED, 'float');
+end
+
+% LETTURA sumZ somma degli z per il calcolo di <Z>
+% LETTURA Zmax
+sumZ = zeros(N_DETECTORS,N_PHOT_DETECTED);
+for i=1:N_DETECTORS
+    sumZ(i, :)=fread(fid, N_PHOT_DETECTED, 'float');
+end
  %pippo=fread(fid,N_PHOTONS*N_LAYERS*N_DETECTORS,'float');
 
 %N_PHOTONS_LAUNCHED=fread(fid,1,'uint64');
@@ -107,5 +119,7 @@ Sim.Detection.N_photons_det=N_PHOT_DETECTED;
 Sim.Detection.N_photons_launched=N_PHOT_LAUNCHED;
 
 %% Sim.Data %%
-Sim.Data=Data;
-Sim.Kappa=Kappa;
+Sim.Data = Data;
+Sim.Kappa = Kappa;
+Sim.Zmax = Zmax;
+Sim.sumZ = sumZ;

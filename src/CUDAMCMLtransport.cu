@@ -98,6 +98,8 @@ __device__ void LaunchPhoton(PhotonStruct* p)//per fibra con NA, unsigned long l
 	p->layer = 1;
 	p->weight=1u;
 	p->t_left=0.0f;
+	p->zmax = 0.0f;
+	p->sumz = 0.0f;
 	//AF	p->weight = *start_weight_dc; //specular reflection!
 
 }
@@ -124,6 +126,8 @@ __global__ void LaunchPhoton_Global(ThreadStates tstates)//PhotonStruct* pd, uns
 	tstates.layer[thd_id]=p.layer;
 	tstates.weight[thd_id]=p.weight;
 	tstates.t_left[thd_id]=p.t_left;
+	tstates.zmax[thd_id]=p.zmax;
+	tstates.sumz[thd_id]=p.sumz;
 }
 
 //************************************* RestoreStates ******************************************
@@ -146,6 +150,9 @@ __device__ void RestoreStates(MemStruct* DeviceMem,ThreadStates* tstates,PhotonS
  	p->weight = tstates->weight[thd_id];
  	p->layer = tstates->layer[thd_id];
  	p->t_left = tstates->t_left[thd_id];
+ 	p->zmax = tstates->zmax[thd_id];
+ 	p->sumz = tstates->sumz[thd_id];
+ 	
 }
 
 //************************************* SaveStates ******************************************
@@ -170,6 +177,8 @@ __device__ void SaveStates(MemStruct* DeviceMem,ThreadStates* tstates,PhotonStru
 	tstates->layer[thd_id] = p->layer;
 	tstates->weight[thd_id] = p->weight;
 	tstates->t_left[thd_id] = p->t_left;
+	tstates->zmax[thd_id] = p->zmax;
+	tstates->sumz[thd_id] = p->sumz;
 }
 
 //************************************* ComputeStepSize ******************************************
@@ -197,6 +206,10 @@ __device__ void Hop(PhotonStruct *p,float s)
 
   	p->t[p->layer-1] += s;
   	p->time_tot += s/LIGHT_SPEED*layers_dc[p->layer].n;
+  	p->zmax = max(p->zmax,p->z);
+  	p->sumz = p->sumz + p->z;
+  	//printf("zmax = %10f\n",p->zmax);
+  	//printf("sumz = %10f\n",p->sumz);
 }
 
 //************************************* Spin ******************************************
@@ -420,6 +433,15 @@ __device__ void DetectAndSavePath(MemStruct* DeviceMem,PhotonStruct* p, int new_
 				  // salva i K
 				  	*(DeviceMem->kappa+(i_lay)*NUM_THREADS*N_photons_dc[0]+thd_id*N_photons_dc[0]+pos) = p->k[i_lay];
 				}
+				// salva gli zmax
+				//printf("zmax = %5f\n",p->zmax);
+				*(DeviceMem->zmax+thd_id*N_photons_dc[0]+pos) = p->zmax;
+				//printf("Devzmax = %5f\n",*DeviceMem->zmax);
+				
+				// salva la somma accumulata di z
+				//printf("sumz = %5f\n",p->sumz);
+				*(DeviceMem->sumz+thd_id*N_photons_dc[0]+pos) = p->sumz;
+				//printf("Devsumz = %5f\n",*DeviceMem->sumz);
 			}
 		}
 	}
@@ -438,6 +460,11 @@ __device__ void DetectAndSavePath(MemStruct* DeviceMem,PhotonStruct* p, int new_
 				  // salva i K
 				  	*(DeviceMem->kappa+(i_lay)*NUM_THREADS*N_photons_dc[0]+thd_id*N_photons_dc[0]+pos) = p->k[i_lay];
 				}
+				// salva gli zmax
+				*(DeviceMem->zmax+thd_id*N_photons_dc[0]+pos) = p->zmax;
+				
+				// salva la somma accumulata di z
+				*(DeviceMem->sumz+thd_id*N_photons_dc[0]+pos) = p->sumz;
 			}
  		}
 	}

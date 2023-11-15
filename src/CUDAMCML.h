@@ -57,7 +57,9 @@
 #define HEADER_DIMENSION 512 //Byte
 #define LIGHT_SPEED 0.0299792458f //0.03f //cm/ps
 // Cilindro e fibre
-
+#ifndef max
+	#define max(a,b) ((a) > (b) ? (a) : (b))
+#endif
 
 // TYPEDEFS
 typedef struct //__align__(16)
@@ -83,6 +85,8 @@ typedef struct //__align__(16)
 	float t_left;	//residual step
 	unsigned short int weight;	// Photon weight
 	unsigned short int layer;	// Current layer
+	float zmax;		// maximum z coordinate for the photon
+	float sumz;		// sum of z for the calculus of <z>
 }PhotonStruct;
 
 typedef struct //__align__(16) 
@@ -99,6 +103,8 @@ typedef struct //__align__(16)
 	float* t_left;
 	unsigned short int* weight;	// Photon weight
 	unsigned short int* layer;	// Current layer
+	float* zmax;		// maximum z coordinate for the photon
+	float* sumz;		// sum of z for the calculus of <z>
 }ThreadStates;
 
 typedef struct 
@@ -130,5 +136,7 @@ typedef struct //__align__(8)
 	unsigned short int* thd_active;
 	float* path;			// path for each layers and detecors
 	unsigned short int* kappa;		// number of scattering interactions for each layers and detectors
+	float* zmax;				// max depth
+	float* sumz;		// sum of z for the calculus of <z>
 }MemStruct;
 

@@ -189,7 +189,38 @@ int Write_Simulation_Results2(MemStruct* HostMem, SimulationStruct* sim)//, cloc
 	  	}
 	  }
   	printf("Zero path k = %d\n",zeropath);
-  	   	  
+  	  zeropath = 0;
+  	  for(int j=0;j<sim->n_detectors;j++){
+		for(int i=0;i<NUM_THREADS;i++){
+			int n_phot=HostMem->received[i];
+	  		//printf("%d\n",n_phot);
+	  		fwrite(&HostMem->zmax[j*NUM_THREADS*N_photons_per_thd+N_photons_per_thd*i],sizeof(float),n_phot,sim->pout);
+			//if(i==1){
+			for(int ip=0;ip<n_phot;ip++){
+					//printf("%.10f\n",HostMem->zmax[j*NUM_THREADS*N_photons_per_thd+N_photons_per_thd*i+ip]);
+				
+				if (HostMem->zmax[j*NUM_THREADS*N_photons_per_thd+N_photons_per_thd*i+ip]<1e-10) zeropath++;
+			}
+				//}
+	  	}
+	  } 
+	printf("Zero path zmax = %d\n",zeropath);
+	zeropath = 0;
+  	  for(int j=0;j<sim->n_detectors;j++){
+		for(int i=0;i<NUM_THREADS;i++){
+			int n_phot=HostMem->received[i];
+	  		//printf("%d\n",n_phot);
+	  		fwrite(&HostMem->sumz[j*NUM_THREADS*N_photons_per_thd+N_photons_per_thd*i],sizeof(float),n_phot,sim->pout);
+			//if(i==1){
+			for(int ip=0;ip<n_phot;ip++){
+					//printf("%.10f\n",HostMem->sumz[j*NUM_THREADS*N_photons_per_thd+N_photons_per_thd*i+ip]);
+				
+				if (HostMem->sumz[j*NUM_THREADS*N_photons_per_thd+N_photons_per_thd*i+ip]<1e-10) zeropath++;
+			}
+				//}
+	  	}
+	  } 
+	 printf("Zero path sumz = %d\n",zeropath);	  
    	return 0;
  
  }
