@@ -1,5 +1,26 @@
-function [time, counts, stdev, dmua, dmus,zmax,zmean] = MC_run(NPHOTONS,TMAX,RorT,diam,Rho,opt,mua,musp,n_chan,dt)
+function [time, counts, stdev, dmua, dmus,zmax,zmean] = MC_run(NPHOTONS,TMAX,RorT,radius,Rho,opt,mua,musp,n_chan,dt)
 %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% MC_run.m
+% 
+% [time counts stdev, dmua, dmus, Zmax, Zmean] = MC_run(NPHOTONS,TMAX,RorT,radius,Rho,opt,mua,musp,n_chan,dt)
+% 
+% This routine extracts run a single MC simulation.
+% 
+% NPHOTONS: number of photons to be received
+% TMAX:     maximum propagation time
+% RorT:     'R': reflectance, 'T': transmittance     
+% radius:   radius of the cylinder
+% Rho:      [rmin rmax] of the receiver
+% opt:      each row for each layer:
+%           opt = [1.0 0 MUS g thick;
+%                  .. .. .. .. .. ]
+% mua:      absorption vector (mua=[1 X Num_Layers])
+% musp:     reduced scattering for rescaling [0 for disabling the feature]
+% n_chan:   number of temporal windows (n_chan = 0 --> CW)
+% dt:       width of the temporal window
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
 %   Run a single simulation
 %
 % NPHOTONS = 1e4;
@@ -12,7 +33,7 @@ function [time, counts, stdev, dmua, dmus,zmax,zmean] = MC_run(NPHOTONS,TMAX,Ror
 % opt = [1.0 0 MUS g thick];
 
 PLOT = 0;
-MC_FuncGenInputFile('MCsingle.mci','MCsingle',NPHOTONS,TMAX,RorT,diam,Rho,opt);
+MC_FuncGenInputFile('MCsingle.mci','MCsingle',NPHOTONS,TMAX,RorT,radius,Rho,opt);
 !~/Documents/MC_CUDA/CUDAMCML MCsingle.mci
 %!~/Documents/MC_CUDA/CUDAMCML MCsingle.mci -S13131313
 

@@ -3,14 +3,15 @@ function [time, counts, stdev, dmua, dmus, Zmax, Zmean]=MC_ExtractSimulation(Sim
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % MC_ExtractSimulation.m
 % 
-% [time counts stdev, dmua, dmus] = MC_ExtractSimulation(Sim,n_chan,dt,mua,musp,PLOT)
+% [time counts stdev, dmua, dmus, Zmax, Zmean] = MC_ExtractSimulation(Sim,n_chan,dt,mua,musp,PLOT)
 % 
-% This routine extracts TR profiles from Simulation Data.
+% This routine extracts TR profiles, standard errors, derivatives,
+% maximum and avarege penetration depths from Simulation Data.
 % 
 % Sim:      Simulation structure obtained by MC_ReadOut.m.
-% n_chan:   number of temporal windows
+% n_chan:   number of temporal windows (if n_chan = 1 -> CW)
 % dt:       width of the temporal window
-% mua:      absorption vector (mua=[1 X Num_Layers]
+% mua:      absorption vector (mua=[1 X Num_Layers])
 % musp:     apply scaling rules [0 for disabling the feature, musprime!]
 % PLOT:     flag for plotting output if =0 the plot is not shown
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
@@ -37,7 +38,12 @@ end
 
 C = 0.0299792458; %cm/ps
 
-time = (0:dt:(n_chan-1)*dt);
+if n_chan == 1
+    % CW
+    time = [0,dt];
+else
+    time = (0:dt:(n_chan-1)*dt);
+end
 refind = lay_prop(:,1);
 v = C*ones(1,N_LAYERS)./refind';
 
@@ -53,18 +59,15 @@ for i=1:N_DETECTORS
     zmax = reshape(ZetaMax(i,:),1,N_PHOTONS_DET);
     zmean = reshape(ZetaMean(i,:),1,N_PHOTONS_DET);
     weight_abs = exp(-mua*length);
-     if ~isempty(musp)
-        if ((nargin>4)&&prod(musp~=0))
+     if ((nargin>4)&&prod(musp~=0))
             mus = musp./(1-g);
             logws = log(mus./mus0) * k;
             logws2 = -(mus-mus0) * length;
             weight_sca = exp(logws + logws2);
         else
             weight_sca = 1;
-        end
-     else
-       weight_sca = 1;  
      end
+     
         
     weight = weight_abs.* weight_sca;
     timep = (1./v)*length;
@@ -82,6 +85,10 @@ for i=1:N_DETECTORS
         zmax(:,bins==0) = [];
         zmean(:,bins==0) = [];
         bins(bins==0)=[];
+    end
+    
+    if n_chan == 1 %CW
+        time(1) = [];
     end
     
     Sumweight(i,:) = accumarray(bins',weight,[numel(time) 1],@sum);
