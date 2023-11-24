@@ -1,4 +1,4 @@
-function [time, counts, stdev, dmua, dmus,zmax,zmean] = MC_run(NPHOTONS,TMAX,RorT,radius,Rho,opt,mua,musp,n_chan,dt)
+function [time, counts, stdev, dmua, dmus,zmax,zmean] = MC_run(NPHOTONS,TMAX,RorT,radius,Rho,opt,mua,musp,n_chan,dt,SEED)
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % MC_run.m
@@ -19,6 +19,8 @@ function [time, counts, stdev, dmua, dmus,zmax,zmean] = MC_run(NPHOTONS,TMAX,Ror
 % musp:     reduced scattering for rescaling [0 for disabling the feature]
 % n_chan:   number of temporal windows (n_chan = 0 --> CW)
 % dt:       width of the temporal window
+% SEED:     integer number for seeding the random number generator. If not
+%           provided the seed is random
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 
 %   Run a single simulation
@@ -34,8 +36,13 @@ function [time, counts, stdev, dmua, dmus,zmax,zmean] = MC_run(NPHOTONS,TMAX,Ror
 
 PLOT = 0;
 MC_FuncGenInputFile('MCsingle.mci','MCsingle',NPHOTONS,TMAX,RorT,radius,Rho,opt);
-!~/Documents/MC_CUDA/CUDAMCML MCsingle.mci
-%!~/Documents/MC_CUDA/CUDAMCML MCsingle.mci -S13131313
+if nargin < 11
+    !~/Documents/MC_CUDA/CUDAMCML MCsingle.mci
+else
+    strcmd = ['~/Documents/MC_CUDA/CUDAMCML MCsingle.mci -S',num2str(SEED)];
+    system(strcmd);
+    %!~/Documents/MC_CUDA/CUDAMCML MCsingle.mci -S13131313
+end
 
 Sim = MC_ReadOut('MCsingle_1.mco');
 [time, counts, stdev, dmua, dmus,zmax,zmean] = MC_ExtractSimulation(Sim,n_chan,dt,mua,musp,PLOT);
