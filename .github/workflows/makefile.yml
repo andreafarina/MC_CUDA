@@ -2,9 +2,9 @@ name: AndreaFarina
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "action-make" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "action-make" ]
   workflow_dispatch:
 
 jobs:
