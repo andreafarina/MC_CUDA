@@ -203,7 +203,7 @@ __device__ void Hop(PhotonStruct *p,float s)
   	p->x += s * p->dx;
   	p->y += s * p->dy;
   	p->z += s * p->dz;
-
+        //if (p->z<0) printf("p-z=%.10f\n",p->z);
   	p->t[p->layer-1] += s;
   	p->time_tot += s/LIGHT_SPEED*layers_dc[p->layer].n;
   	p->zmax = max(p->zmax,p->z);

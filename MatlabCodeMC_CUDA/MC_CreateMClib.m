@@ -4,16 +4,16 @@ clc;
 
 %%%%%%%%%%%%%%%%%%%% INPUT DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Files
-FILE_OUT='VASCOVID.mclib';
+FILE_OUT='Bone07.mclib';
 FILE_MC_DIR='./';%'~/Documents/Code/MC_CUDA_Dev/Simulations/Thermal/';
-FILE_MC_PREF='VASCOVID_';
+FILE_MC_PREF='Bone07_';
 FILE_MC_EXT='mco';
 
 %% Geometric series
 %q=sqrt(2);
-q = 1.2;
-MUS0=1;  %cm-1 reduced scattering coefficient
-NUM_MUS=19;
+q = 1.1;
+MUS0 = 0.5;  %cm-1 reduced scattering coefficient
+NUM_MUS = 54;
 
 %% Temporal windows
 NUM_PATH = 8000; %10000;

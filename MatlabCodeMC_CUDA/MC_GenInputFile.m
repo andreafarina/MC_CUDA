@@ -1,38 +1,36 @@
 %% Creazione del file di simulazione %%
-FILE='VASCOVID.mci';
-fid=fopen(FILE,'w');
-VER=1.2;
+FILE = 'Bone05.mci';
+fid = fopen(FILE,'w');
+VER = 1.2;
 
 %% Data 
-FILE_OUT_PREFIX= 'Simulations/Vascovid/VASCOVID';%'/media/DATA/andreafarina/MC/Pancreas';%'Simulations/Abdomen/Abdomen_3cm';
-EXT_OUT='mco';
-NRUN=19;
-NPHOTONS = 10000000;
-TMAX = 5000;%2.0345*4096;%2000 %ps
-RorT='R';
-Radius=1000;%2.54/2;
+FILE_OUT_PREFIX = 'Simulations/VAMSHI/Bone05';%'/media/DATA/andreafarina/MC/Pancreas';%'Simulations/Abdomen/Abdomen_3cm';
+EXT_OUT = 'mco';
+NRUN = 54;
+NPHOTONS = 1e6;
+TMAX = 2.0345*4096;%2000 %ps
+RorT = 'R';
+Radius = 2.5;%2.54/2;
 %Rho=[0.45 0.55;0.95 1.05;1.45 1.55;1.95 2.05];
-Rho=[1.95 2.05];
-NDET=size(Rho,1);
+Rho = 0.5 + [-0.05 0.05];
+NDET = size(Rho,1);
 
 
 
-n_up=1.;%refractive index up
-n_down=1.;%refractive index down
+n_up = 1.;%refractive index up
+n_down = 1.;%refractive index down
 
-MUSp0=1.0;
-g=0.8; %anisotropy factor
+MUSp0 = 0.5;
+g = 0.8; %anisotropy factor
 %q=sqrt(2);
-q=1.2;
-MUS0=MUSp0/(1-g);
+q = 1.1;
+MUS0 = MUSp0/(1-g);
 
 %opt0=[1.33 0 MUS0 g 1.0
 %    1.54 0 MUS0 g 1.0];
-opt0=[1.42 0 MUS0 g 4.0];
+opt0 = [1.40 0 MUS0 g 1.2];
 
-NLAY=size(opt0,1);
-
-
+NLAY = size(opt0,1);
 
 %% creazione header
 buffer='############################################## \n\n';

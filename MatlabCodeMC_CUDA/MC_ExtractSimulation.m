@@ -110,7 +110,7 @@ for i = 1:N_DETECTORS
     fact = pi*dt*(R_DET(2*i).^2-R_DET(2*i-1).^2)*N_PHOTONS_LAUNCHED(i);
     
     Simul(i,:) = Sumweight(i,:)./fact;
-    Simul2(i,:) = Sumweight2(i,:)./(fact./2);
+    Simul2(i,:) = Sumweight2(i,:)./(fact.^2);
     
     % this is used only for the plot legend
     if R_DET(2*i-1) == 0

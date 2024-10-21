@@ -1,4 +1,4 @@
-function [l,k,plk] = MC_ExtractPlk(Sim,NbinK,dk,NbinL,dl,norm)
+function [l,k,plk] = MC_ExtractPlk(Sim,dk,dl,norm)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % MC_ExtractPlk.m
 % 
@@ -16,34 +16,32 @@ function [l,k,plk] = MC_ExtractPlk(Sim,NbinK,dk,NbinL,dl,norm)
 
 
 
-L = squeeze(sum(Sim.Data));
-K = squeeze(sum(Sim.Kappa));
-%Lbin = linspace(0,max(L),NbinL + 1);
-%Kbin = linspace(0,max(K),NbinK + 1);
-Lbin = (0:NbinL) * dl;
-Kbin = (0:NbinK) * dk;
+L = squeeze(sum(Sim.Data,2));
+K = squeeze(sum(Sim.Kappa,2));
 
-[~,~,~,binEll,binK] = histcounts2(L,K,Lbin,Kbin);
+Lbin = (0:dl:(max(L)+dl));
+Kbin = (0:max(K)) + dk/2;
+
+[plk,~,~,binEll,binK] = histcounts2(L,K,Lbin,Kbin);
 if ~all(binEll)
    %weight(bins==0)=[];
    binEll(binEll==0)=[];
    binK(binK==0)=[];
 end
-plk = accumarray([binEll,binK],1,[numel(Lbin),numel(Kbin)] - 1);
 
-%dl = Lbin(2) - Lbin(1);
-%dk = Kbin(2) - Kbin(1);
 l = Lbin + dl/2;
 k = Kbin + dk/2;
 l(end) = []; k(end) = [];
 plk = plk';
-plkCW = sum(plk,2);
+plkCW = sum(plk,2) * dl;
+
 if norm
     area = trapz(k,plk,1);
+    plkCW = plkCW./sum(plkCW);
 else
     area = 1;
 end
 plk = plk./area;
 
 figure,subplot(1,2,1),imagesc(l,k,plk),xlabel('L(cm)'),ylabel('K')
-subplot(1,2,2),plot(k,plk,k,plkCW,'r'),xlabel('k')
+subplot(1,2,2),plot(k,plk,k,plkCW,'k'),xlabel('k')
